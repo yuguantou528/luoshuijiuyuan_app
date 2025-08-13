@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>已救援告警详情 - 北斗落水救援</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f2f2f7;
+            color: #000;
+            user-select: none;
+        }
+        .ios-status-bar {
+            height: 48px;
+            background-color: #007AFF;
+            color: white;
+        }
+        .bottom-tab {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .detail-card {
+            background-color: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .section-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #1f2937;
+            position: relative;
+            padding-left: 12px;
+        }
+        .section-title::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 16px;
+            background: #007AFF;
+            border-radius: 2px;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .info-value {
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: right;
+        }
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        /* 标题中的状态标签样式 */
+        h1 .status-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            vertical-align: middle;
+            transform: translateY(-1px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .status-rescued {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+        .map-container {
+            height: 250px;
+            background-color: #e5e7eb;
+            position: relative;
+            overflow: hidden;
+            border-bottom-left-radius: 14px;
+            border-bottom-right-radius: 14px;
+        }
+        #rescued-map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .alert-marker {
+            background-color: #ff3b30;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .path-marker {
+            background-color: #3b82f6;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 12px !important;
+            height: 12px !important;
+            margin-left: -6px;
+            margin-top: -6px;
+        }
+        .start-marker {
+            background-color: #ef4444;
+        }
+        .end-marker {
+            background-color: #10b981;
+        }
+        .tab-button {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-button.active {
+            color: #007AFF;
+            border-bottom: 2px solid #007AFF;
+        }
+        .rescue-report {
+            background-color: #f0fdf4;
+            border: 1px solid #dcfce7;
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 24px;
+            padding-bottom: 16px;
+        }
+        .timeline-item:before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 6px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #22c55e;
+        }
+        .timeline-item:after {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 14px;
+            width: 2px;
+            height: calc(100% - 14px);
+            background-color: #dcfce7;
+        }
+        .timeline-item:last-child:after {
+            display: none;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- iOS 状态栏 -->
+    <div class="ios-status-bar flex items-center justify-between px-6">
+        <div class="text-sm font-semibold">09:07</div>
+        <div class="notch flex space-x-1.5">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div class="flex items-center p-4">
+            <a href="alerts.html" class="text-blue-500 mr-4">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            <h1 class="text-xl font-semibold flex-1 text-center flex items-center justify-center" id="alert-title">
+                已救援告警
+            </h1>
+            <div class="w-6"></div> <!-- 用于平衡左侧返回按钮 -->
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="flex-1 overflow-y-auto pb-20">
+        <!-- 告警状态 -->
+        <div class="detail-card mx-4 mt-4">
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <div>
+                        <h3 class="font-bold text-lg" id="device-name-display">北斗救生终端 BD-500X</h3>
+                    </div>
+                    <div class="status-badge status-rescued" id="rescue-status-badge">
+                        <i class="fas fa-check-circle mr-1"></i> 已救援
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center mt-3">
+                    <div class="text-sm text-gray-600 font-medium">落水告警时间：</div>
+                    <div class="text-sm text-gray-500" id="alert-time">2023-07-11 17:06</div>
+                </div>
+                
+                <div class="flex justify-between items-center mt-2">
+                    <div class="text-sm text-gray-600 font-medium">最后告警时间：</div>
+                    <div class="text-sm text-gray-500" id="last-alert-time">2023-07-11 17:06</div>
+                </div>
+                
+                <div class="flex justify-between items-center mt-2">
+                    <div class="text-sm text-gray-600 font-medium">救援用时：</div>
+                    <div class="text-lg font-bold text-green-500" id="timer">00:23:42</div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- 漂流轨迹地图 -->
+        <div class="detail-card mx-4">
+            <div class="p-4 pb-2">
+                <h3 class="section-title">漂流轨迹</h3>
+            </div>
+            <div class="map-container">
+                <div id="rescued-map" style="width:100%; height:100%; z-index:1;"></div>
+            </div>
+        </div>
+
+        <!-- 选项卡 -->
+        <div class="bg-white sticky top-[96px] z-10 mx-4 mt-4 rounded-t-lg border-b border-gray-200">
+            <div class="flex">
+                <button class="tab-button active" id="tab-device" onclick="switchTab('device')">
+                    <i class="fas fa-microchip mr-1"></i> 设备信息
+                </button>
+                <button class="tab-button" id="tab-person" onclick="switchTab('person')">
+                    <i class="fas fa-user mr-1"></i> 人员信息
+                </button>
+                <button class="tab-button" id="tab-trajectory" onclick="switchTab('trajectory')">
+                    <i class="fas fa-route mr-1"></i> 轨迹信息
+                </button>
+            </div>
+        </div>
+
+        <!-- 选项卡内容 -->
+        <div class="mx-4 mb-4">
+            <!-- 设备信息 -->
+            <div class="detail-card" id="content-device">
+                <div class="p-4">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                            <i class="fas fa-life-ring text-blue-500 text-lg"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h4 class="font-semibold" id="device-name">北斗救生终端 BD-500X</h4>
+                            <p class="text-xs text-gray-500 mt-1" id="device-status">
+                                <span class="inline-block w-2 h-2 bg-gray-500 rounded-full"></span> 已停用
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-gray-100 pt-3">
+                        <div class="info-item">
+                            <div class="info-label">设备编号</div>
+                            <div class="info-value" id="device-id">BD2303</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">所属公司</div>
+                            <div class="info-value" id="device-company">北斗海事科技公司</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">北斗卡号</div>
+                            <div class="info-value" id="device-card-number">BD34567890</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">设备电量</div>
+                            <div class="info-value" id="device-battery">
+                                <div class="flex items-center">
+                                    <div class="w-6 h-3 bg-red-100 rounded-sm border border-red-500 relative mr-1">
+                                        <div class="absolute left-0 top-0 bottom-0 bg-red-500" style="width: 20%"></div>
+                                    </div>
+                                    <span class="text-red-500">20%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 人员信息 -->
+            <div class="detail-card hidden" id="content-person">
+                <div class="p-4">
+                    <div class="flex mb-4">
+                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80" 
+                            class="w-20 h-20 rounded-full object-cover border-2 border-green-500" alt="落水人员照片" id="person-photo">
+                        <div class="ml-4 flex-1">
+                            <h4 class="font-semibold text-lg" id="person-name">王五</h4>
+                            <p class="text-sm text-gray-500 mt-1" id="person-phone">
+                                <i class="fas fa-phone mr-1"></i> 13923456789
+                            </p>
+                            <p class="text-sm text-gray-500 mt-1" id="person-company">
+                                <i class="fas fa-building mr-1"></i> 东方渔业有限公司
+                            </p>
+                        </div>
+                    </div>
+                    
+
+                </div>
+            </div>
+
+            <!-- 轨迹信息 -->
+            <div class="detail-card hidden" id="content-trajectory">
+                <div class="p-4">
+                    <div class="border-b border-gray-100">
+                        <div class="info-item">
+                            <div class="info-label">起始位置</div>
+                            <div class="info-value" id="trajectory-start">东经118.823451°, 北纬26.394582°</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">最后位置</div>
+                            <div class="info-value" id="trajectory-current">东经118.825789°, 北纬26.393471°</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">漂流距离</div>
+                            <div class="info-value" id="trajectory-distance">287米</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 底部导航栏 -->
+    <div class="bottom-tab py-2 px-6 grid grid-cols-4 gap-1 fixed bottom-0 left-0 right-0 max-w-md mx-auto">
+        <a href="index.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-home text-lg"></i>
+            <span class="text-xs mt-1">首页</span>
+        </a>
+        <a href="map.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-map-marked-alt text-lg"></i>
+            <span class="text-xs mt-1">地图</span>
+        </a>
+        <a href="alerts.html" class="flex flex-col items-center text-blue-500">
+            <i class="fas fa-exclamation-circle text-lg"></i>
+            <span class="text-xs mt-1">告警</span>
+        </a>
+        <a href="profile.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-user text-lg"></i>
+            <span class="text-xs mt-1">我的</span>
+        </a>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 确保Leaflet库已加载
+        if (typeof L === 'undefined') {
+            console.error("Leaflet库未加载!");
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"><\/script>');
+        } else {
+            console.log("Leaflet库已加载");
+        }
+    </script>
+    <script>
+        // 获取URL参数函数
+        function getUrlParam(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null) return decodeURIComponent(r[2]); return null;
+        }
+        
+        // 从URL参数获取告警ID和状态
+        const urlAlertId = getUrlParam('id');
+        const urlAlertStatus = getUrlParam('status');
+        
+        // 优先使用URL参数，其次使用localStorage
+        const currentAlertId = urlAlertId || localStorage.getItem('currentAlertId') || 'A2205';
+        
+        console.log("页面加载，当前告警ID:", currentAlertId);
+        
+        // 模拟数据库中的已救援告警数据
+        const rescuedAlertData = {
+            'A2205': {
+                id: 'A2205',
+                time: '2023-07-11 17:06',
+                status: 'rescued',
+                coordinates: {
+                    longitude: 118.823451,
+                    latitude: 26.394582
+                },
+                timer: '00:23:42',
+                rescueData: {
+                    id: 'R202307110023',
+                    timeline: [
+                        { event: '落水告警触发', time: '2023-07-11 17:06:21' },
+                        { event: '救援队伍出发', time: '2023-07-11 17:10:48' },
+                        { event: '到达落水地点', time: '2023-07-11 17:22:15' },
+                        { event: '成功救援', time: '2023-07-11 17:30:03' }
+                    ],
+                    team: '东部海域救援队 - B组',
+                    rating: 5,
+                    summary: '该落水事件发生于2023年7月11日17:06分，东方渔业有限公司的工作人员王五在工作过程中不慎落水。北斗救生终端BD-500X成功触发告警，救援队伍在接到告警后迅速出动，于17:30成功救援落水人员。落水人员健康状况良好，已被送往医院进行进一步检查。',
+                    distance: '287米',
+                    speed: '0.83 m/s',
+                    responseTime: '4分27秒',
+                    totalTime: '23分42秒',
+                    recommendations: [
+                        '建议船舶人员在甲板作业时佩戴救生衣',
+                        '加强船员安全意识培训',
+                        '定期检查北斗救生终端电量，确保设备正常工作'
+                    ]
+                },
+                person: {
+                    name: '王五',
+                    photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+                    phone: '13923456789',
+                    company: '东方渔业有限公司',
+                    healthStatus: '良好',
+                    incidentReason: '工作意外',
+                    afterRescue: '已送医检查'
+                },
+                device: {
+                    id: 'BD2303',
+                    name: '北斗救生终端 BD-500X',
+                    alertTime: '2023-07-11 17:06',  // 最后告警时间，和初始告警时间一致
+                    company: '北斗海事科技公司',
+                    cardNumber: 'BD34567890',
+                    battery: '20%'
+                },
+                trajectory: {
+                    start: '东经118.823451°, 北纬26.394582°',
+                    current: '东经118.825789°, 北纬26.393471°',
+                    distance: '287米',
+                    time: '00:23:42',
+                    speed: '0.83 m/s',
+                    direction: '东南',
+                    points: [
+                        {
+                            time: "17:06:21",
+                            label: "告警点",
+                            latitude: 26.394582,
+                            longitude: 118.823451,
+                            color: "bg-red-500"
+                        },
+                        {
+                            time: "17:15:30",
+                            label: "漂流点 1",
+                            latitude: 26.394125,
+                            longitude: 118.824163,
+                            color: "bg-orange-500"
+                        },
+                        {
+                            time: "17:22:45",
+                            label: "漂流点 2",
+                            latitude: 26.393782,
+                            longitude: 118.824892,
+                            color: "bg-yellow-500"
+                        },
+                        {
+                            time: "17:30:03",
+                            label: "救援点",
+                            latitude: 26.393471,
+                            longitude: 118.825789,
+                            color: "bg-green-500"
+                        }
+                    ]
+                }
+            },
+            'A2204': {
+                id: 'A2204',
+                time: '2023-07-10 09:33',
+                status: 'rescued',
+                coordinates: {
+                    longitude: 118.856712,
+                    latitude: 26.412375
+                },
+                timer: '00:18:05',
+                rescueData: {
+                    id: 'R202307100015',
+                    timeline: [
+                        { event: '落水告警触发', time: '2023-07-10 09:33:25' },
+                        { event: '救援队伍出发', time: '2023-07-10 09:38:12' },
+                        { event: '到达落水地点', time: '2023-07-10 09:45:35' },
+                        { event: '成功救援', time: '2023-07-10 09:51:30' }
+                    ],
+                    team: '东部海域救援队 - A组',
+                    rating: 4,
+                    summary: '该落水事件发生于2023年7月10日09:33分，渔民李四在作业过程中不慎落水。北斗救生终端迅速触发告警，救援队伍于09:51成功救援落水人员。',
+                    distance: '215米',
+                    speed: '0.77 m/s',
+                    responseTime: '4分47秒',
+                    totalTime: '18分05秒',
+                    recommendations: [
+                        '加强船员安全意识培训',
+                        '定期检查北斗救生终端电量'
+                    ]
+                },
+                person: {
+                    name: '李四',
+                    photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80',
+                    phone: '13876543210',
+                    company: '福建渔业公司',
+                    healthStatus: '良好',
+                    incidentReason: '操作失误',
+                    afterRescue: '已返回岸上'
+                },
+                device: {
+                    id: 'BD2304',
+                    name: '北斗救生终端 BD-500X',
+                    alertTime: '2023-07-10 09:33:25',
+                    company: '北斗海事科技公司',
+                    cardNumber: 'BD45678901',
+                    battery: '72%'
+                }
+            }
+        };
+        
+        // 获取或创建当前告警数据
+        let currentAlert;
+        if (rescuedAlertData[currentAlertId]) {
+            currentAlert = rescuedAlertData[currentAlertId];
+        } else {
+            // 如果找不到告警数据，使用默认数据
+            currentAlert = rescuedAlertData['A2205'];
+        }
+
+        // 页面加载完成后执行初始化
+        window.onload = function() {
+            console.log("页面完全加载，初始化页面");
+            
+            // 初始化页面数据
+            initializePageData();
+            
+            // 初始化漂流轨迹地图
+            const mapContainer = document.getElementById('rescued-map');
+            if (mapContainer) {
+                console.log("地图容器存在，尺寸:", mapContainer.offsetWidth, "x", mapContainer.offsetHeight);
+                
+                // 延迟初始化地图，确保DOM完全渲染
+                setTimeout(function() {
+                    console.log("延迟执行地图初始化");
+                    initTrajectoryMap();
+                }, 500);
+            } else {
+                console.error("找不到地图容器!");
+            }
+        };
+        
+        // 切换标签页
+        function switchTab(tabName) {
+            // 移除所有标签页的激活状态
+            document.getElementById('tab-person').classList.remove('active');
+            document.getElementById('tab-device').classList.remove('active');
+            document.getElementById('tab-trajectory').classList.remove('active');
+            
+            // 隐藏所有内容
+            document.getElementById('content-person').classList.add('hidden');
+            document.getElementById('content-device').classList.add('hidden');
+            document.getElementById('content-trajectory').classList.add('hidden');
+            
+            // 激活选中的标签页
+            document.getElementById('tab-' + tabName).classList.add('active');
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+        }
+        
+        // 初始化页面数据
+        function initializePageData() {
+            // 更新页面标题和设备名称
+            document.getElementById('device-name-display').textContent = currentAlert.device && currentAlert.device.name 
+                ? currentAlert.device.name : '北斗救生终端 BD-500X';
+            document.getElementById('alert-time').textContent = currentAlert.time;
+            
+            // 更新最后告警时间（与告警时间相同或使用设备中的时间）
+            const lastAlertTime = currentAlert.device && currentAlert.device.alertTime 
+                ? currentAlert.device.alertTime 
+                : currentAlert.time;
+            document.getElementById('last-alert-time').textContent = lastAlertTime;
+            
+            // 更新计时器
+            document.getElementById('timer').textContent = currentAlert.timer;
+            
+            // 更新设备信息
+            updateDeviceInfo();
+            
+            // 更新人员信息
+            updatePersonInfo();
+            
+            // 更新轨迹信息
+            updateTrajectoryInfo();
+            
+            // 默认显示设备信息标签页
+            switchTab('device');
+        }
+        
+        // 更新轨迹信息
+        function updateTrajectoryInfo() {
+            if (currentAlert.trajectory) {
+                // 更新起始位置、最后位置和漂流距离
+                document.getElementById('trajectory-start').textContent = currentAlert.trajectory.start || '东经118.823451°, 北纬26.394582°';
+                document.getElementById('trajectory-current').textContent = currentAlert.trajectory.current || '东经118.825789°, 北纬26.393471°';
+                document.getElementById('trajectory-distance').textContent = currentAlert.trajectory.distance || '287米';
+            }
+        }
+        
+        // 更新人员信息
+        function updatePersonInfo() {
+            if (currentAlert.person) {
+                document.getElementById('person-photo').src = currentAlert.person.photo;
+                document.getElementById('person-name').textContent = currentAlert.person.name;
+                document.getElementById('person-phone').innerHTML = `<i class="fas fa-phone mr-1"></i> ${currentAlert.person.phone}`;
+                document.getElementById('person-company').innerHTML = `<i class="fas fa-building mr-1"></i> ${currentAlert.person.company}`;
+            }
+        }
+        
+        // 更新设备信息
+        function updateDeviceInfo() {
+            if (currentAlert.device) {
+                document.getElementById('device-name').textContent = '北斗救生终端 BD-500X';
+                
+                document.getElementById('device-id').textContent = currentAlert.device.id;
+                document.getElementById('device-alert-time').textContent = currentAlert.device.alertTime;
+                document.getElementById('device-company').textContent = currentAlert.device.company;
+                document.getElementById('device-card-number').textContent = currentAlert.device.cardNumber;
+                
+                // 设置电池图标
+                updateBatteryDisplay(currentAlert.device.battery);
+            }
+        }
+        
+        // 更新电池显示
+        function updateBatteryDisplay(batteryStr) {
+            const batteryPercentage = parseInt(batteryStr);
+            const batteryContainer = document.getElementById('device-battery');
+            
+            if (batteryPercentage <= 20) {
+                batteryContainer.innerHTML = `<div class="flex items-center">
+                    <div class="w-6 h-3 bg-red-100 rounded-sm border border-red-500 relative mr-1">
+                        <div class="absolute left-0 top-0 bottom-0 bg-red-500" style="width: ${batteryPercentage}%"></div>
+                    </div>
+                    <span class="text-red-500">${batteryStr}</span>
+                </div>`;
+            } else if (batteryPercentage <= 50) {
+                batteryContainer.innerHTML = `<div class="flex items-center">
+                    <div class="w-6 h-3 bg-yellow-100 rounded-sm border border-yellow-500 relative mr-1">
+                        <div class="absolute left-0 top-0 bottom-0 bg-yellow-500" style="width: ${batteryPercentage}%"></div>
+                    </div>
+                    <span class="text-yellow-500">${batteryStr}</span>
+                </div>`;
+            } else {
+                batteryContainer.innerHTML = `<div class="flex items-center">
+                    <div class="w-6 h-3 bg-green-100 rounded-sm border border-green-500 relative mr-1">
+                        <div class="absolute left-0 top-0 bottom-0 bg-green-500" style="width: ${batteryPercentage}%"></div>
+                    </div>
+                    <span class="text-green-500">${batteryStr}</span>
+                </div>`;
+            }
+        }
+        
+
+        
+
+
+        // 初始化漂流轨迹地图
+        function initTrajectoryMap() {
+            console.log("初始化漂流轨迹地图");
+            
+            // 使用当前告警的轨迹点数据（如果存在）
+            if (currentAlert.trajectory && currentAlert.trajectory.points && currentAlert.trajectory.points.length > 0) {
+                drawTrajectoryFromPoints(currentAlert.trajectory.points);
+            } else {
+                // 否则使用示例轨迹点
+                const trajectoryPoints = [
+                    {latitude: 26.403032, longitude: 118.841216, label: "告警点", time: "17:06:00"},
+                    {latitude: 26.402158, longitude: 118.843521, label: "漂流点 1", time: "17:15:22"},
+                    {latitude: 26.401345, longitude: 118.845732, label: "漂流点 2", time: "17:20:45"},
+                    {latitude: 26.400321, longitude: 118.847916, label: "救援点", time: "17:29:42"}
+                ];
+                
+                drawTrajectoryFromPoints(trajectoryPoints);
+            }
+        }
+        
+        // 从轨迹点数据绘制轨迹
+        function drawTrajectoryFromPoints(points) {
+            console.log("开始绘制轨迹，点数:", points.length);
+            
+            const mapContainer = document.getElementById('rescued-map');
+            if (!mapContainer) {
+                console.error("地图容器不存在!");
+                return;
+            }
+            
+            try {
+                // 检查之前的地图实例，如果存在则销毁
+                if (window.rescuedMap && window.rescuedMap.remove) {
+                    console.log("移除现有地图实例");
+                    window.rescuedMap.remove();
+                }
+                
+                // 创建地图
+                window.rescuedMap = L.map('rescued-map', {
+                    zoomControl: false,
+                    attributionControl: false
+                }).setView([points[0].latitude, points[0].longitude], 15);
+                
+                console.log("地图实例创建成功");
+                
+                // 尝试加载主要地图源
+                const mainTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                });
+                
+                // 备用地图源
+                const backupTileLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG21Xc', {
+                    maxZoom: 19
+                });
+                
+                // 先尝试加载主要地图源
+                mainTileLayer.addTo(window.rescuedMap);
+                
+                // 地图加载错误时使用备用源
+                mainTileLayer.on('tileerror', function() {
+                    console.log("主要地图源加载失败，使用备用地图源");
+                    if (!window.backupTileLayerAdded) {
+                        backupTileLayer.addTo(window.rescuedMap);
+                        window.backupTileLayerAdded = true;
+                    }
+                });
+                
+                console.log("地图底图添加成功");
+                
+                // 添加起点标记
+                const startMarker = L.circleMarker(
+                    [points[0].latitude, points[0].longitude],
+                    {
+                        radius: 6,
+                        className: 'path-marker start-marker'
+                    }
+                ).addTo(window.rescuedMap);
+                
+                // 收集所有点的坐标用于绘制轨迹线
+                const pathCoordinates = points.map(point => [point.latitude, point.longitude]);
+                
+                // 添加路径
+                const pathLine = L.polyline(pathCoordinates, {
+                    color: '#10b981', // 绿色表示已救援
+                    weight: 3,
+                    opacity: 0.7,
+                    dashArray: '5, 7'
+                }).addTo(window.rescuedMap);
+                
+                // 添加中间点
+                for (let i = 1; i < points.length - 1; i++) {
+                    const point = points[i];
+                    L.circleMarker(
+                        [point.latitude, point.longitude],
+                        {
+                            radius: 6,
+                            className: 'path-marker'
+                        }
+                    ).addTo(window.rescuedMap);
+                }
+                
+                // 添加终点标记
+                const endPoint = points[points.length - 1];
+                const endMarker = L.circleMarker(
+                    [endPoint.latitude, endPoint.longitude],
+                    {
+                        radius: 6,
+                        className: 'path-marker end-marker'
+                    }
+                ).addTo(window.rescuedMap);
+                
+                // 调整视图以包含所有点
+                window.rescuedMap.fitBounds(pathLine.getBounds(), {padding: [30, 30]});
+                
+                console.log("轨迹绘制完成");
+                
+                // 触发地图重绘
+                setTimeout(function() {
+                    window.rescuedMap.invalidateSize();
+                    console.log("地图大小重新计算");
+                }, 100);
+            } catch (error) {
+                console.error("地图初始化错误:", error);
+            }
+        }
+    </script>
+</body>
+</html> 

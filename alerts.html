@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>落水告警 - 北斗落水救援</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f2f2f7;
+            color: #000;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        
+        /* 筛选抽屉样式 */
+        .filter-drawer {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 80%;
+            height: 100%;
+            background-color: white;
+            z-index: 1000;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+        
+        .filter-drawer.open {
+            right: 0;
+        }
+        
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+        
+        .drawer-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #111827;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        
+        .filter-btn {
+            background-color: #007AFF;
+            color: white;
+            padding: 12px 0;
+            border-radius: 8px;
+            font-weight: 500;
+            width: 100%;
+            text-align: center;
+            border: none;
+        }
+        
+        .filter-btn:active {
+            background-color: #0056b3;
+        }
+        
+        .reset-btn {
+            background-color: #f3f4f6;
+            color: #4b5563;
+            padding: 12px 0;
+            border-radius: 8px;
+            font-weight: 500;
+            width: 100%;
+            text-align: center;
+            border: none;
+            margin-top: 10px;
+        }
+        
+        .reset-btn:active {
+            background-color: #e5e7eb;
+        }
+        .ios-status-bar {
+            height: 48px;
+            background-color: #007AFF;
+            color: white;
+        }
+        .alert-card {
+            background-color: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow: hidden;
+        }
+        .alert-card:active {
+            transform: scale(0.98);
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+        }
+        .tab-active {
+            color: #007AFF;
+            border-bottom: 2px solid #007AFF;
+        }
+        .bottom-tab {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .status-unrescued {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        .status-rescuing {
+            background-color: rgba(249, 115, 22, 0.1);
+            color: #f97316;
+        }
+        .status-rescued {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+        .location-indicator {
+            display: inline-flex;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.03);
+            padding: 6px 10px;
+            border-radius: 10px;
+            margin-top: 8px;
+        }
+        .alert-time {
+            background-color: rgba(0, 0, 0, 0.03);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+        .battery-indicator {
+            background-color: rgba(0, 0, 0, 0.03);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+        }
+        .rescue-button {
+            background: linear-gradient(135deg, #0091ff 0%, #0066cc 100%);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
+            transition: all 0.2s ease;
+        }
+        .rescue-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 6px rgba(0, 122, 255, 0.1);
+        }
+        .view-history-button {
+            background-color: #f8f9fa;
+            color: #4b5563;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+        .view-history-button:active {
+            background-color: #f1f2f3;
+        }
+        .alert-header {
+            background: linear-gradient(to right, rgba(0,0,0,0.02), rgba(0,0,0,0));
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- iOS 状态栏 -->
+    <div class="ios-status-bar flex items-center justify-between px-6">
+        <div class="text-sm font-semibold">09:07</div>
+        <div class="notch flex space-x-1.5">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div class="flex items-center p-4">
+            <h1 class="text-xl font-semibold flex-1 text-center">落水告警</h1>
+            <button id="filter-btn" class="text-blue-500" onclick="toggleFilterDrawer()">
+                <i class="fas fa-filter"></i>
+            </button>
+        </div>
+
+        <!-- 分段控制器 (标签页) -->
+        <div class="flex border-b border-gray-200">
+            <button class="flex-1 py-3 text-center tab-active" id="tab-unrescued">
+                未救援 <span class="text-red-500 ml-1">2</span>
+            </button>
+            <button class="flex-1 py-3 text-center text-gray-500" id="tab-rescued">
+                已救援 <span class="text-gray-400 ml-1">3</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- 筛选抽屉覆盖层 -->
+    <div id="drawer-overlay" class="drawer-overlay" onclick="toggleFilterDrawer()"></div>
+    
+    <!-- 筛选抽屉 -->
+    <div id="filter-drawer" class="filter-drawer">
+        <div class="p-4">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-semibold">筛选条件</h2>
+                <button onclick="toggleFilterDrawer()" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">告警时间范围</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <input type="date" id="date-from" class="form-input" placeholder="开始日期">
+                    </div>
+                    <div>
+                        <input type="date" id="date-to" class="form-input" placeholder="结束日期">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">设备编号</label>
+                <select id="device-filter" class="form-input">
+                    <option value="">全部设备</option>
+                    <option value="BD12345678">BD12345678</option>
+                    <option value="BD23456789">BD23456789</option>
+                    <option value="BD34567890">BD34567890</option>
+                    <option value="BD45678901">BD45678901</option>
+                    <option value="BD56789012">BD56789012</option>
+                </select>
+            </div>
+            
+            <div class="mt-8">
+                <button id="apply-filter" class="filter-btn" onclick="applyFilters()">
+                    应用筛选
+                </button>
+                <button id="reset-filter" class="reset-btn" onclick="resetFilters()">
+                    重置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="flex-1 overflow-y-auto p-4">
+        <!-- 未救援列表 -->
+        <div id="content-unrescued">
+            <!-- 落水告警卡片 1 -->
+            <div class="alert-card mb-4">
+                <div class="alert-header p-4 pb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2 mt-1"></div>
+                            <h3 class="font-bold">北斗救生终端 BD-500X #A2207</h3>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="battery-indicator flex items-center mr-2">
+                                <i class="fas fa-battery-three-quarters text-green-500"></i>
+                                <span class="text-xs ml-1 text-gray-600">87%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="text-xs text-gray-500">
+                            <span class="alert-time">2023-07-12 14:23</span>
+                        </div>
+                        <div class="status-badge status-unrescued">
+                            <i class="fas fa-exclamation-circle mr-1"></i> 未救援
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-4 pb-4">
+                    <div class="location-indicator w-full">
+                        <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                        <span class="text-gray-700 text-sm truncate">福建南部海区 - 东经118.841216°, 北纬26.403032°</span>
+                    </div>
+                    
+                    <!-- 新增救援按钮 -->
+                    <button class="rescue-button w-full text-white py-3 px-4 rounded-xl text-sm font-medium mt-3" 
+                            onclick="viewAlertDetails('A2207', 'unrescued')">
+                        <i class="fas fa-life-ring mr-1"></i> 救援
+                    </button>
+                </div>
+            </div>
+
+            <!-- 落水告警卡片 2 -->
+            <div class="alert-card mb-4">
+                <div class="alert-header p-4 pb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2 mt-1"></div>
+                            <h3 class="font-bold">北斗救生终端 BD-500X #A2206</h3>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="battery-indicator flex items-center mr-2">
+                                <i class="fas fa-battery-half text-yellow-500"></i>
+                                <span class="text-xs ml-1 text-gray-600">76%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="text-xs text-gray-500">
+                            <span class="alert-time">2023-07-12 14:14</span>
+                        </div>
+                        <div class="status-badge status-unrescued">
+                            <i class="fas fa-exclamation-circle mr-1"></i> 未救援
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-4 pb-4">
+                    <div class="location-indicator w-full">
+                        <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                        <span class="text-gray-700 text-sm truncate">福建南部海区 - 东经118.845320°, 北纬26.410215°</span>
+                    </div>
+                    
+                    <!-- 新增救援按钮 -->
+                    <button class="rescue-button w-full text-white py-3 px-4 rounded-xl text-sm font-medium mt-3" 
+                            onclick="viewAlertDetails('A2206', 'unrescued')">
+                        <i class="fas fa-life-ring mr-1"></i> 救援
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 已救援列表（默认隐藏） -->
+        <div id="content-rescued" class="hidden">
+            <!-- 已救援告警卡片 1 -->
+            <div class="alert-card mb-4">
+                <div class="alert-header p-4 pb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-1"></div>
+                            <h3 class="font-bold text-gray-700">北斗救生终端 BD-500X #A2205</h3>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="battery-indicator flex items-center mr-2">
+                                <i class="fas fa-battery-half text-yellow-500"></i>
+                                <span class="text-xs ml-1 text-gray-600">65%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="text-xs text-gray-500">
+                            <span class="alert-time">2023-07-11 17:06</span>
+                        </div>
+                        <div class="status-badge status-rescued">
+                            <i class="fas fa-check-circle mr-1"></i> 已救援
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-4 pb-4">
+                    <div class="location-indicator w-full">
+                        <i class="fas fa-map-marker-alt text-green-500 mr-2"></i>
+                        <span class="text-gray-700 text-sm truncate">福建南部海区 - 东经118.823451°, 北纬26.394582°</span>
+                    </div>
+                    
+                    <!-- 新增查看历史按钮 -->
+                    <button class="view-history-button w-full py-3 px-4 rounded-xl text-sm font-medium mt-3" 
+                            onclick="viewAlertDetails('A2205', 'rescued')">
+                        <i class="fas fa-history mr-1"></i> 查看详情
+                    </button>
+                </div>
+            </div>
+
+            <!-- 已救援告警卡片 2 -->
+            <div class="alert-card mb-4">
+                <div class="alert-header p-4 pb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-1"></div>
+                            <h3 class="font-bold text-gray-700">北斗救生终端 BD-500X #A2204</h3>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="battery-indicator flex items-center mr-2">
+                                <i class="fas fa-battery-three-quarters text-green-500"></i>
+                                <span class="text-xs ml-1 text-gray-600">72%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="text-xs text-gray-500">
+                            <span class="alert-time">2023-07-10 09:33</span>
+                        </div>
+                        <div class="status-badge status-rescued">
+                            <i class="fas fa-check-circle mr-1"></i> 已救援
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-4 pb-4">
+                    <div class="location-indicator w-full">
+                        <i class="fas fa-map-marker-alt text-green-500 mr-2"></i>
+                        <span class="text-gray-700 text-sm truncate">福建南部海区 - 东经118.856712°, 北纬26.412375°</span>
+                    </div>
+                    
+                    <!-- 新增查看历史按钮 -->
+                    <button class="view-history-button w-full py-3 px-4 rounded-xl text-sm font-medium mt-3" 
+                            onclick="viewAlertDetails('A2204', 'rescued')">
+                        <i class="fas fa-history mr-1"></i> 查看详情
+                    </button>
+                </div>
+            </div>
+
+            <!-- 已救援告警卡片 3 -->
+            <div class="alert-card mb-4">
+                <div class="alert-header p-4 pb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="flex items-center">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-1"></div>
+                            <h3 class="font-bold text-gray-700">北斗救生终端 BD-500X #A2203</h3>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="battery-indicator flex items-center mr-2">
+                                <i class="fas fa-battery-full text-green-500"></i>
+                                <span class="text-xs ml-1 text-gray-600">80%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="text-xs text-gray-500">
+                            <span class="alert-time">2023-07-05 14:38</span>
+                        </div>
+                        <div class="status-badge status-rescued">
+                            <i class="fas fa-check-circle mr-1"></i> 已救援
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="px-4 pb-4">
+                    <div class="location-indicator w-full">
+                        <i class="fas fa-map-marker-alt text-green-500 mr-2"></i>
+                        <span class="text-gray-700 text-sm truncate">福建南部海区 - 东经118.831592°, 北纬26.401287°</span>
+                    </div>
+                    
+                    <!-- 新增查看历史按钮 -->
+                    <button class="view-history-button w-full py-3 px-4 rounded-xl text-sm font-medium mt-3" 
+                            onclick="viewAlertDetails('A2203', 'rescued')">
+                        <i class="fas fa-history mr-1"></i> 查看详情
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-tab py-2 px-6 grid grid-cols-4 gap-1">
+        <a href="index.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-home text-lg"></i>
+            <span class="text-xs mt-1">首页</span>
+        </a>
+        <a href="map.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-map-marked-alt text-lg"></i>
+            <span class="text-xs mt-1">地图</span>
+        </a>
+        <a href="alerts.html" class="flex flex-col items-center text-blue-500">
+            <i class="fas fa-exclamation-circle text-lg"></i>
+            <span class="text-xs mt-1">告警</span>
+        </a>
+        <a href="profile.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-user text-lg"></i>
+            <span class="text-xs mt-1">我的</span>
+        </a>
+    </div>
+
+    <script>
+        // 筛选抽屉控制
+        function toggleFilterDrawer() {
+            const drawer = document.getElementById('filter-drawer');
+            const overlay = document.getElementById('drawer-overlay');
+            
+            if (drawer.classList.contains('open')) {
+                drawer.classList.remove('open');
+                overlay.classList.remove('open');
+                document.body.style.overflow = '';
+            } else {
+                drawer.classList.add('open');
+                overlay.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        // 应用筛选器
+        function applyFilters() {
+            const dateFrom = document.getElementById('date-from').value;
+            const dateTo = document.getElementById('date-to').value;
+            const deviceId = document.getElementById('device-filter').value;
+            
+            console.log('应用筛选:', { dateFrom, dateTo, deviceId });
+            
+            // 筛选未救援告警
+            const unrescuedCards = document.querySelectorAll('#content-unrescued .alert-card');
+            filterCards(unrescuedCards, dateFrom, dateTo, deviceId);
+            
+            // 筛选已救援告警
+            const rescuedCards = document.querySelectorAll('#content-rescued .alert-card');
+            filterCards(rescuedCards, dateFrom, dateTo, deviceId);
+            
+            // 关闭抽屉
+            toggleFilterDrawer();
+            
+            // 更新筛选按钮样式，表示筛选已应用
+            if (dateFrom || dateTo || deviceId) {
+                document.getElementById('filter-btn').classList.add('text-blue-700');
+            } else {
+                document.getElementById('filter-btn').classList.remove('text-blue-700');
+            }
+        }
+        
+        // 筛选卡片
+        function filterCards(cards, dateFrom, dateTo, deviceId) {
+            cards.forEach(card => {
+                let isVisible = true;
+                
+                // 获取卡片上的信息
+                const cardTime = card.querySelector('.alert-time').textContent;
+                const cardDate = cardTime.split(' ')[0]; // 提取日期部分
+                const cardTitle = card.querySelector('h3').textContent;
+                const cardDeviceId = getDeviceIdFromAlertId(cardTitle);
+                
+                // 按日期筛选
+                if (dateFrom && cardDate < dateFrom) {
+                    isVisible = false;
+                }
+                if (dateTo && cardDate > dateTo) {
+                    isVisible = false;
+                }
+                
+                // 按设备编号筛选
+                if (deviceId && cardDeviceId !== deviceId) {
+                    isVisible = false;
+                }
+                
+                // 显示或隐藏卡片
+                if (isVisible) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+        
+        // 从告警标题中提取设备ID
+        function getDeviceIdFromAlertId(title) {
+            // 从数据中查找设备ID
+            const alertId = title.split('#')[1];
+            if (alertData[alertId] && alertData[alertId].device) {
+                return alertData[alertId].device.id;
+            }
+            return '';
+        }
+        
+        // 重置筛选器
+        function resetFilters() {
+            // 重置表单
+            document.getElementById('date-from').value = '';
+            document.getElementById('date-to').value = '';
+            document.getElementById('device-filter').value = '';
+            
+            // 显示所有卡片
+            document.querySelectorAll('.alert-card').forEach(card => {
+                card.classList.remove('hidden');
+            });
+            
+            // 更新筛选按钮样式
+            document.getElementById('filter-btn').classList.remove('text-blue-700');
+        }
+        
+        // 标签页切换逻辑
+        const tabUnrescued = document.getElementById('tab-unrescued');
+        const tabRescued = document.getElementById('tab-rescued');
+        const contentUnrescued = document.getElementById('content-unrescued');
+        const contentRescued = document.getElementById('content-rescued');
+
+        tabUnrescued.addEventListener('click', function() {
+            tabUnrescued.classList.add('tab-active');
+            tabUnrescued.classList.remove('text-gray-500');
+            tabRescued.classList.remove('tab-active');
+            tabRescued.classList.add('text-gray-500');
+            
+            contentUnrescued.classList.remove('hidden');
+            contentRescued.classList.add('hidden');
+        });
+
+        tabRescued.addEventListener('click', function() {
+            tabRescued.classList.add('tab-active');
+            tabRescued.classList.remove('text-gray-500');
+            tabUnrescued.classList.remove('tab-active');
+            tabUnrescued.classList.add('text-gray-500');
+            
+            contentRescued.classList.remove('hidden');
+            contentUnrescued.classList.add('hidden');
+        });
+
+        // 卡片点击效果
+        document.querySelectorAll('.alert-card').forEach(card => {
+            card.addEventListener('click', function() {
+                this.classList.add('opacity-80');
+                setTimeout(() => {
+                    this.classList.remove('opacity-80');
+                }, 200);
+            });
+        });
+
+        // 模拟数据库中的告警数据
+        const alertData = {
+            'A2207': {
+                id: 'A2207',
+                time: '2023-07-12 14:23',
+                status: 'unrescued', // unrescued, rescuing, rescued
+                coordinates: {
+                    longitude: 118.841216,
+                    latitude: 26.403032
+                },
+                timer: '00:03:42',
+                device: {
+                    name: '北斗救生终端 BD-500X',
+                    status: '运行正常',
+                    id: 'BD12345678',
+                    battery: '87%',
+                    signal: '强',
+                    lastActive: '2023-07-12 14:25:36',
+                    location: '左臂',
+                    activated: '2023-03-15',
+                    firmware: 'v2.3.5'
+                }
+            },
+            'A2206': {
+                id: 'A2206',
+                time: '2023-07-12 14:14',
+                status: 'rescuing',
+                coordinates: {
+                    longitude: 118.845320,
+                    latitude: 26.410215
+                },
+                timer: '00:12:18',
+                device: {
+                    name: '北斗救生终端 BD-500X',
+                    status: '运行正常',
+                    id: 'BD23456789',
+                    battery: '76%',
+                    signal: '中',
+                    lastActive: '2023-07-12 14:25:12',
+                    location: '右臂',
+                    activated: '2023-02-20',
+                    firmware: 'v2.3.5'
+                }
+            },
+            'A2205': {
+                id: 'A2205',
+                time: '2023-07-11 17:06',
+                status: 'rescued',
+                coordinates: {
+                    longitude: 118.823451,
+                    latitude: 26.394582
+                },
+                timer: '00:23:42',
+                device: {
+                    name: '北斗救生终端 BD-500X',
+                    status: '已停用',
+                    id: 'BD34567890',
+                    battery: '65%',
+                    signal: '弱',
+                    lastActive: '2023-07-11 17:06:21',
+                    location: '左臂',
+                    activated: '2023-01-10',
+                    firmware: 'v2.3.4'
+                }
+            },
+            'A2204': {
+                id: 'A2204',
+                time: '2023-07-10 09:33',
+                status: 'rescued',
+                coordinates: {
+                    longitude: 118.856712,
+                    latitude: 26.412375
+                },
+                timer: '00:18:05',
+                device: {
+                    name: '北斗救生终端 BD-500X',
+                    status: '已停用',
+                    id: 'BD45678901',
+                    battery: '72%',
+                    signal: '中',
+                    lastActive: '2023-07-10 09:33:25',
+                    location: '右臂',
+                    activated: '2023-01-05',
+                    firmware: 'v2.3.4'
+                }
+            },
+            'A2203': {
+                id: 'A2203',
+                time: '2023-07-05 14:38',
+                status: 'rescued',
+                coordinates: {
+                    longitude: 118.831592,
+                    latitude: 26.401287
+                },
+                timer: '00:15:33',
+                device: {
+                    name: '北斗救生终端 BD-500X',
+                    status: '已停用',
+                    id: 'BD56789012',
+                    battery: '80%',
+                    signal: '强',
+                    lastActive: '2023-07-05 14:38:15',
+                    location: '左臂',
+                    activated: '2023-01-03',
+                    firmware: 'v2.3.4'
+                }
+            }
+        };
+
+        // 跳转到详情页面
+        function viewAlertDetails(alertId, status) {
+            console.log("查看告警详情:", alertId, "状态:", status);
+            
+            // 清除之前的所有数据
+            localStorage.removeItem('currentAlertId');
+            localStorage.removeItem('currentAlertStatus');
+            localStorage.removeItem('alertDeviceName');
+            localStorage.removeItem('alertDeviceBattery');
+            localStorage.removeItem('alertTime');
+            localStorage.removeItem('alertStatus');
+            
+            // 存储告警ID和状态到本地存储
+            localStorage.setItem('currentAlertId', alertId);
+            localStorage.setItem('currentAlertStatus', status);
+            
+            // 存储告警数据到本地存储
+            if (alertData[alertId]) {
+                localStorage.setItem('alertDeviceName', alertData[alertId].device.name);
+                localStorage.setItem('alertDeviceBattery', alertData[alertId].device.battery);
+                localStorage.setItem('alertTime', alertData[alertId].time);
+                // 强制使用传入的状态，而不是数据中的状态
+                localStorage.setItem('alertStatus', status);
+            }
+            
+            // 根据状态跳转到不同的详情页面
+            if (status === 'rescued') {
+                // 已救援，跳转到已救援详情页
+                window.location.href = 'rescued-alert-details.html?id=' + alertId + '&status=' + status + '&t=' + new Date().getTime();
+            } else {
+                // 未救援，跳转到普通详情页
+                window.location.href = 'alert-details.html?id=' + alertId + '&status=' + status + '&t=' + new Date().getTime();
+            }
+        }
+    </script>
+</body>
+</html> 

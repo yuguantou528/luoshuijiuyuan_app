@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>地图导航 - 北斗落水救援</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f2f2f7;
+            color: #000;
+            user-select: none;
+        }
+        .ios-status-bar {
+            height: 44px;
+            background-color: transparent;
+        }
+        .bottom-tab {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+        .map-control {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .map-overlay {
+            position: absolute;
+            z-index: 10;
+        }
+        .tool-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .tool-button:last-child {
+            margin-bottom: 0;
+        }
+        .alert-marker {
+            background-color: #ff3b30;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        .path-marker {
+            background-color: #3b82f6;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 12px !important;
+            height: 12px !important;
+            margin-left: -6px;
+            margin-top: -6px;
+        }
+        .start-marker {
+            background-color: #ef4444;
+        }
+        .end-marker {
+            background-color: #10b981;
+        }
+        .point-popup .leaflet-popup-content-wrapper {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+        .alert-list {
+            max-height: 35vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .alert-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .alert-list::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        .alert-list::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.15);
+            border-radius: 10px;
+        }
+        .detail-panel {
+            height: 75vh;
+            max-height: calc(100% - 70px); /* 确保不会与底部导航栏重叠 */
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(0);
+            transition: transform 0.3s ease-in-out;
+            overflow-y: auto;
+        }
+        .detail-panel.hidden {
+            transform: translateY(100%);
+        }
+        .detail-handle {
+            width: 40px;
+            height: 5px;
+            background-color: #e2e2e2;
+            border-radius: 5px;
+            margin: 8px auto;
+        }
+        .battery-indicator {
+            width: 40px;
+            height: 16px;
+            border: 1px solid currentColor;
+            border-radius: 3px;
+            position: relative;
+            padding: 1px;
+        }
+        .battery-indicator::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            top: 4px;
+            height: 8px;
+            width: 3px;
+            border-radius: 0 2px 2px 0;
+            background-color: currentColor;
+        }
+        .battery-level {
+            height: 100%;
+            border-radius: 2px;
+        }
+        .path-point {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        }
+        .path-line {
+            position: absolute;
+            width: 2px;
+            background: #3b82f6;
+            top: 10px;
+            bottom: 10px;
+            left: 19px;
+            z-index: -1;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col max-w-md mx-auto relative">
+    <!-- iOS 状态栏 -->
+    <div class="ios-status-bar flex items-center justify-between px-6">
+        <div class="text-sm font-semibold">09:41</div>
+        <div class="notch flex space-x-1.5">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- 地图容器 -->
+    <div class="flex-1 relative">
+        <div id="map"></div>
+
+        <!-- 顶部工具栏 -->
+        <div class="map-overlay absolute top-4 left-4">
+            <div class="map-control p-3">
+                <a href="index.html" class="text-blue-500">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- 右侧工具栏 -->
+        <div class="map-overlay absolute top-20 right-4">
+            <div class="map-control p-1.5 flex flex-col items-center">
+                <button class="tool-button" id="toggleMeasure">
+                    <i class="fas fa-ruler text-blue-600"></i>
+                </button>
+                <button class="tool-button">
+                    <i class="fas fa-location-arrow text-blue-500"></i>
+                </button>
+                <button class="tool-button">
+                    <i class="fas fa-layer-group text-gray-700"></i>
+                </button>
+                <button class="tool-button">
+                    <i class="fas fa-plus text-gray-700"></i>
+                </button>
+                <button class="tool-button">
+                    <i class="fas fa-minus text-gray-700"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 告警指示器 -->
+        <div class="map-overlay absolute top-4 right-4" id="alertIndicator">
+            <div class="map-control p-1.5 animate-pulse">
+                <button class="tool-button text-red-500" id="toggleAlertList">
+                    <div class="relative">
+                        <i class="fas fa-exclamation-triangle text-lg"></i>
+                        <span class="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 落水告警列表面板 -->
+        <div class="map-overlay absolute bottom-20 left-4 right-4 hidden" id="alertListPanel">
+            <div class="map-control p-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold">实时落水告警数据</h3>
+                    <span class="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full">3人未救援</span>
+                </div>
+                <div class="alert-list">
+                    <!-- 告警列表项 -->
+                    <div class="alert-item border-b border-gray-100 py-3 cursor-pointer" data-alert-id="BD2301">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                                <h4 class="font-medium">设备编号: BD2301</h4>
+                            </div>
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">未救援</span>
+                        </div>
+                        <div class="flex justify-between mt-1 text-xs text-gray-500">
+                            <span><i class="far fa-clock mr-1"></i>2025-07-10 14:22:05</span>
+                            <span class="flex items-center">
+                                <i class="fas fa-battery-half text-yellow-500 mr-1"></i>50%
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="alert-item border-b border-gray-100 py-3 cursor-pointer" data-alert-id="BD2302">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                                <h4 class="font-medium">设备编号: BD2302</h4>
+                            </div>
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">未救援</span>
+                        </div>
+                        <div class="flex justify-between mt-1 text-xs text-gray-500">
+                            <span><i class="far fa-clock mr-1"></i>2025-07-10 14:30:18</span>
+                            <span class="flex items-center">
+                                <i class="fas fa-battery-three-quarters text-green-500 mr-1"></i>75%
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="alert-item border-b border-gray-100 py-3 cursor-pointer" data-alert-id="BD2303">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <div class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                                <h4 class="font-medium">设备编号: BD2303</h4>
+                            </div>
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">未救援</span>
+                        </div>
+                        <div class="flex justify-between mt-1 text-xs text-gray-500">
+                            <span><i class="far fa-clock mr-1"></i>2025-07-10 14:57:39</span>
+                            <span class="flex items-center">
+                                <i class="fas fa-battery-quarter text-red-500 mr-1"></i>20%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <button id="closeAlertList" class="w-full bg-blue-50 text-blue-600 py-2 rounded-lg text-sm font-medium mt-3 border border-blue-100">
+                    <i class="fas fa-times mr-1"></i> 关闭列表
+                </button>
+            </div>
+        </div>
+
+        <!-- 当前选中告警信息卡片 -->
+        <div class="map-overlay absolute bottom-20 left-4 right-4" id="alertInfoCard">
+            <div class="map-control p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                        <h3 class="font-bold" id="alertTitle">设备编号: BD2301</h3>
+                    </div>
+                    <span class="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full" id="alertStatus">未救援</span>
+                </div>
+                <div class="flex items-center justify-between mt-1 mb-3">
+                    <div class="flex items-center">
+                        <i class="fas fa-map-marker-alt text-red-500 mr-1"></i>
+                        <p class="text-xs text-gray-500" id="locationInfo">
+                            东经118.841216°, 北纬26.403032°
+                        </p>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="far fa-clock text-blue-500 mr-1"></i>
+                        <p class="text-xs text-gray-500" id="timeInfo">
+                            2025-07-10 14:22:05
+                        </p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="rescueBtn" class="bg-green-500 text-white py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-life-ring mr-1"></i> 进行救援
+                    </button>
+                    <button id="viewDetailBtn" class="bg-blue-50 text-blue-600 py-2 rounded-lg text-sm font-medium border border-blue-100">
+                        <i class="fas fa-info-circle mr-1"></i> 查看详情
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导航状态卡片 (默认隐藏) -->
+        <div class="map-overlay absolute bottom-20 left-4 right-4 hidden" id="navigationCard">
+            <div class="map-control p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-blue-500 rounded-full animate-pulse mr-2"></div>
+                        <h3 class="font-bold">正在导航至落水点</h3>
+                    </div>
+                    <button class="text-gray-400" id="closeNavBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="flex items-center mt-1 mb-2">
+                    <div class="bg-blue-100 w-10 h-10 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-route text-blue-500 text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="font-semibold" id="navDeviceInfo">设备编号: BD2301</p>
+                        <p class="text-xs text-gray-500" id="navDistance">
+                            距离: <span id="distanceValue">1.2</span> 公里，预计到达时间: <span id="etaValue">8</span> 分钟
+                        </p>
+                    </div>
+                </div>
+                <div class="h-1.5 bg-gray-100 rounded-full mb-3">
+                    <div class="h-full bg-blue-500 rounded-full" id="navProgress" style="width: 30%"></div>
+                </div>
+                <div class="flex space-x-3">
+                    <button id="stopNavBtn" class="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-stop-circle mr-1"></i> 停止导航
+                    </button>
+                    <button class="flex-1 bg-blue-500 text-white py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-phone-alt mr-1"></i> 联系救援队
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 落水告警详情面板 (默认隐藏) -->
+        <div class="map-overlay absolute bottom-0 left-0 right-0 bg-white detail-panel hidden" id="detailPanel">
+            <div class="detail-handle"></div>
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">落水告警详情</h2>
+                    <button id="closeDetailBtn" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">
+                        <i class="fas fa-times text-gray-500"></i>
+                    </button>
+                </div>
+                
+                <!-- 设备信息 -->
+                <div class="bg-blue-50 rounded-xl p-3 mb-4">
+                    <h3 class="font-bold text-blue-800 mb-2">设备信息</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-xs text-gray-500">设备编号</p>
+                            <p class="font-medium" id="detailDeviceId">BD2301</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">告警时间</p>
+                            <p class="font-medium" id="detailAlertTime">2025-07-10 14:22:05</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">所属公司</p>
+                            <p class="font-medium" id="detailDeviceCompany">海洋救援有限公司</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">北斗卡号</p>
+                            <p class="font-medium" id="detailCardNumber">BD98765432</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 人员信息 -->
+                <div class="bg-red-50 rounded-xl p-3 mb-4">
+                    <h3 class="font-bold text-red-800 mb-2">人员信息</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-xs text-gray-500">姓名</p>
+                            <p class="font-medium" id="detailPersonName">李四</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">联系电话</p>
+                            <p class="font-medium" id="detailPersonPhone">13800138000</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">所属公司</p>
+                            <p class="font-medium" id="detailPersonCompany">远洋渔业集团</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">救援状态</p>
+                            <p class="font-medium text-red-600" id="detailRescueStatus">未救援</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 位置信息 -->
+                <div class="bg-green-50 rounded-xl p-3 mb-4">
+                    <h3 class="font-bold text-green-800 mb-2">位置信息</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-xs text-gray-500">经度</p>
+                            <p class="font-medium" id="detailLongitude">118.841216°E</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">纬度</p>
+                            <p class="font-medium" id="detailLatitude">26.403032°N</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">最后更新时间</p>
+                            <p class="font-medium" id="detailUpdateTime">14:57:32</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 漂流轨迹 -->
+                <div class="mb-4">
+                    <h3 class="font-bold mb-3">漂流轨迹</h3>
+                    <div class="relative" id="driftPathContainer">
+                        <div class="path-line"></div>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="grid grid-cols-1 gap-4">
+                    <button id="detailRescueBtn" class="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-medium transition">
+                        <i class="fas fa-life-ring mr-1"></i> 进行救援
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航栏 -->
+        <div class="bottom-tab py-2 px-6 grid grid-cols-4 gap-1 fixed bottom-0 left-0 right-0 max-w-md mx-auto">
+            <a href="index.html" class="flex flex-col items-center text-gray-400 hover:text-blue-500 transition">
+                <i class="fas fa-home text-lg"></i>
+                <span class="text-xs mt-1">首页</span>
+            </a>
+            <a href="map.html" class="flex flex-col items-center text-blue-500">
+                <i class="fas fa-map-marked-alt text-lg"></i>
+                <span class="text-xs mt-1">地图</span>
+            </a>
+            <a href="alerts.html" class="flex flex-col items-center text-gray-400 hover:text-blue-500 transition">
+                <i class="fas fa-exclamation-circle text-lg"></i>
+                <span class="text-xs mt-1">告警</span>
+            </a>
+            <a href="profile.html" class="flex flex-col items-center text-gray-400 hover:text-blue-500 transition">
+                <i class="fas fa-user text-lg"></i>
+                <span class="text-xs mt-1">我的</span>
+            </a>
+        </div>
+        
+        <!-- 确认救援模态框 -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" id="confirmRescueModal">
+            <div class="bg-white rounded-lg p-6 max-w-xs w-full">
+                <h3 class="text-lg font-bold mb-4">确认救援</h3>
+                <p class="text-gray-600 mb-6">是否确认已完成对该落水人员的救援？</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancelRescue" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-md transition">取消</button>
+                    <button id="confirmRescue" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition">确认</button>
+                </div>
+            </div>
+        </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化地图
+            const map = L.map('map', {
+                zoomControl: false  // 禁用默认的左上角缩放控件
+            }).setView([26.403032, 118.841216], 13);
+            
+            // 使用卫星图层
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            // 定义告警数据
+            const alertData = [
+                {
+                    id: "BD2301",
+                    cardNumber: "BD98765432",
+                    deviceCompany: "海洋救援有限公司",
+                    alertTime: "2025-07-10 14:22:05",
+                    lastUpdate: "14:57:32",
+                    battery: 50,
+                    rescueStatus: "未救援",
+                    person: {
+                        name: "李四",
+                        phone: "13800138000",
+                        company: "远洋渔业集团"
+                    },
+                    position: {
+                        latitude: 26.403032,
+                        longitude: 118.841216
+                    },
+                    path: [
+                        {
+                            time: "14:22:05",
+                            label: "告警点",
+                            latitude: 26.403032,
+                            longitude: 118.841216,
+                            color: "bg-red-500"
+                        },
+                        {
+                            time: "14:34:18",
+                            label: "漂流点 1",
+                            latitude: 26.402158,
+                            longitude: 118.843521,
+                            color: "bg-orange-500"
+                        },
+                        {
+                            time: "14:46:22",
+                            label: "漂流点 2",
+                            latitude: 26.401345,
+                            longitude: 118.845732,
+                            color: "bg-yellow-500"
+                        },
+                        {
+                            time: "14:57:32",
+                            label: "当前位置",
+                            latitude: 26.400321,
+                            longitude: 118.847916,
+                            color: "bg-blue-500"
+                        }
+                    ]
+                },
+                {
+                    id: "BD2302",
+                    cardNumber: "BD23456789",
+                    deviceCompany: "海洋救援有限公司",
+                    alertTime: "2025-07-10 14:30:18",
+                    lastUpdate: "14:59:45",
+                    battery: 75,
+                    rescueStatus: "未救援",
+                    person: {
+                        name: "张三",
+                        phone: "13900139000",
+                        company: "蓝海渔业公司"
+                    },
+                    position: {
+                        latitude: 26.410215,
+                        longitude: 118.845320
+                    },
+                    path: [
+                        {
+                            time: "14:30:18",
+                            label: "告警点",
+                            latitude: 26.410215,
+                            longitude: 118.845320,
+                            color: "bg-red-500"
+                        },
+                        {
+                            time: "14:42:36",
+                            label: "漂流点 1",
+                            latitude: 26.411032,
+                            longitude: 118.846712,
+                            color: "bg-orange-500"
+                        },
+                        {
+                            time: "14:59:45",
+                            label: "当前位置",
+                            latitude: 26.411987,
+                            longitude: 118.848901,
+                            color: "bg-blue-500"
+                        }
+                    ]
+                },
+                {
+                    id: "BD2303",
+                    cardNumber: "BD34567890",
+                    deviceCompany: "北斗海事科技公司",
+                    alertTime: "2025-07-10 14:57:39",
+                    lastUpdate: "15:01:20",
+                    battery: 20,
+                    rescueStatus: "未救援",
+                    person: {
+                        name: "王五",
+                        phone: "13700137000",
+                        company: "东方渔业有限公司"
+                    },
+                    position: {
+                        latitude: 26.398173,
+                        longitude: 118.852647
+                    },
+                    path: [
+                        {
+                            time: "14:57:39",
+                            label: "告警点",
+                            latitude: 26.398173,
+                            longitude: 118.852647,
+                            color: "bg-red-500"
+                        },
+                        {
+                            time: "15:01:20",
+                            label: "当前位置",
+                            latitude: 26.397982,
+                            longitude: 118.853421,
+                            color: "bg-blue-500"
+                        }
+                    ]
+                }
+            ];
+
+            // 自定义告警标记
+            const alertIcon = L.divIcon({
+                className: 'alert-marker',
+                html: '<i class="fas fa-exclamation-triangle"></i>',
+                iconSize: [32, 32]
+            });
+
+            // 自定义已救援告警标记
+            const rescuedAlertIcon = L.divIcon({
+                className: 'alert-marker',
+                html: '<i class="fas fa-check"></i>',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+
+            // 存储所有标记
+            const markers = {};
+            const pathLines = {};
+            const pathMarkers = {};
+
+            // 添加落水告警标记 (只添加未救援的)
+            alertData.forEach(alert => {
+                if (alert.rescueStatus === "已救援") return;
+                
+                // 获取最新位置（路径中的最后一个点）
+                const latestPosition = alert.path[alert.path.length - 1];
+                
+                // 创建标记
+                const marker = L.marker(
+                    [latestPosition.latitude, latestPosition.longitude], 
+                    {icon: alertIcon}
+                ).addTo(map);
+                
+                // 为标记添加点击事件
+                marker.on('click', function() {
+                    showAlertInfo(alert.id);
+                });
+                
+                // 存储标记
+                markers[alert.id] = marker;
+                
+                // 创建漂流路径线
+                if (alert.path.length > 1) {
+                    const pathCoordinates = alert.path.map(point => [point.latitude, point.longitude]);
+                    const pathLine = L.polyline(pathCoordinates, {
+                        color: '#3b82f6',
+                        weight: 3,
+                        opacity: 0.7,
+                        dashArray: '5, 7'
+                    }).addTo(map);
+                    
+                    pathLines[alert.id] = pathLine;
+                    
+                    // 添加轨迹点标记 (起点、中间点和终点)
+                    pathMarkers[alert.id] = [];
+                    
+                    // 根据路径长度选择要显示的点
+                    let displayPoints = [];
+                    if (alert.path.length <= 3) {
+                        // 如果点数少于等于3个，显示所有点
+                        displayPoints = alert.path.map((point, index) => ({point, index}));
+                    } else {
+                        // 始终显示起点
+                        displayPoints.push({point: alert.path[0], index: 0});
+                        
+                        // 根据路径长度选择中间点
+                        if (alert.path.length <= 5) {
+                            // 少于5个点，显示中间所有点
+                            for (let i = 1; i < alert.path.length - 1; i++) {
+                                displayPoints.push({point: alert.path[i], index: i});
+                            }
+                        } else {
+                            // 多于5个点，均匀选择中间点
+                            const step = Math.floor((alert.path.length - 2) / 2);
+                            for (let i = 1; i < alert.path.length - 1; i += step) {
+                                displayPoints.push({point: alert.path[i], index: i});
+                            }
+                        }
+                        
+                        // 始终显示终点
+                        displayPoints.push({
+                            point: alert.path[alert.path.length - 1], 
+                            index: alert.path.length - 1
+                        });
+                    }
+                    
+                    // 创建路径点标记
+                    displayPoints.forEach(({point, index}) => {
+                        let className = 'path-marker';
+                        
+                        if (index === 0) {
+                            className += ' start-marker';
+                        } else if (index === alert.path.length - 1) {
+                            className += ' end-marker';
+                        }
+                        
+                        const pathPointMarker = L.circleMarker(
+                            [point.latitude, point.longitude],
+                            {
+                                radius: 6,
+                                className: className
+                            }
+                        ).addTo(map);
+                        
+                        // 添加点击事件，显示经纬度和时间信息
+                        pathPointMarker.bindPopup(`
+                            <div class="p-2 text-center">
+                                <div class="font-bold mb-1">${point.label}</div>
+                                <div class="text-sm mb-1">
+                                    <i class="far fa-clock mr-1"></i>${point.time}
+                                </div>
+                                <div class="text-xs text-gray-600">
+                                    ${point.longitude}°E, ${point.latitude}°N
+                                </div>
+                            </div>
+                        `, {
+                            className: 'point-popup',
+                            offset: [0, -5]
+                        });
+                        
+                        pathMarkers[alert.id].push(pathPointMarker);
+                    });
+                }
+            });
+
+            // 导航和测距相关变量
+            let currentAlertId = "BD2301"; // 默认选中的告警ID
+            let isMeasuring = false;
+            let measurePoints = [];
+            let measureMarkers = [];
+            let measureLines = [];
+            let measureResultControl = null;
+
+            // 初始化显示默认告警信息
+            showAlertInfo(currentAlertId);
+
+            // 进行救援按钮事件
+            document.getElementById('rescueBtn').addEventListener('click', function() {
+                document.getElementById('confirmRescueModal').classList.remove('hidden');
+            });
+            
+            // 详情页救援按钮事件
+            document.getElementById('detailRescueBtn').addEventListener('click', function() {
+                document.getElementById('confirmRescueModal').classList.remove('hidden');
+            });
+            
+            // 确认救援按钮事件
+            document.getElementById('confirmRescue').addEventListener('click', function() {
+                markAsRescued(currentAlertId);
+                document.getElementById('confirmRescueModal').classList.add('hidden');
+            });
+            
+            // 取消救援按钮事件
+            document.getElementById('cancelRescue').addEventListener('click', function() {
+                document.getElementById('confirmRescueModal').classList.add('hidden');
+            });
+            
+            // 打开告警列表按钮事件
+            document.getElementById('toggleAlertList').addEventListener('click', function() {
+                document.getElementById('alertListPanel').classList.toggle('hidden');
+                document.getElementById('alertInfoCard').classList.add('hidden');
+                document.getElementById('navigationCard').classList.add('hidden');
+                document.getElementById('detailPanel').classList.add('hidden');
+            });
+            
+            // 关闭告警列表按钮事件
+            document.getElementById('closeAlertList').addEventListener('click', function() {
+                document.getElementById('alertListPanel').classList.add('hidden');
+                showAlertInfo(currentAlertId);
+            });
+            
+            // 查看详情按钮事件
+            document.getElementById('viewDetailBtn').addEventListener('click', function() {
+                showAlertDetail(currentAlertId);
+            });
+            
+            // 关闭详情按钮事件
+            document.getElementById('closeDetailBtn').addEventListener('click', function() {
+                document.getElementById('detailPanel').classList.add('hidden');
+            });
+            
+            // 为每个告警列表项添加点击事件
+            document.querySelectorAll('.alert-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const alertId = this.getAttribute('data-alert-id');
+                    currentAlertId = alertId;
+                    showAlertInfo(alertId);
+                });
+            });
+            
+            // 测距按钮事件
+            document.getElementById('toggleMeasure').addEventListener('click', function() {
+                startMeasuring();
+            });
+
+            // 地图按钮事件
+            document.querySelector('.fa-location-arrow').parentElement.addEventListener('click', function() {
+                map.setView([26.401532, 118.843516], 14);
+            });
+
+            // 添加地图按钮事件
+            document.querySelector('.fa-plus').parentElement.addEventListener('click', function() {
+                map.zoomIn();
+            });
+
+            document.querySelector('.fa-minus').parentElement.addEventListener('click', function() {
+                map.zoomOut();
+            });
+
+            // 标记为已救援
+            function markAsRescued(alertId) {
+                const alert = alertData.find(item => item.id === alertId);
+                if (!alert) return;
+                
+                alert.rescueStatus = "已救援";
+                
+                // 更新UI
+                document.getElementById('alertStatus').textContent = "已救援";
+                document.getElementById('alertStatus').classList.remove('bg-red-600');
+                document.getElementById('alertStatus').classList.add('bg-green-600');
+                
+                if (document.getElementById('detailRescueStatus')) {
+                    document.getElementById('detailRescueStatus').textContent = "已救援";
+                    document.getElementById('detailRescueStatus').classList.remove('text-red-600');
+                    document.getElementById('detailRescueStatus').classList.add('text-green-600');
+                }
+                
+                // 更新地图标记
+                if (markers[alertId]) {
+                    map.removeLayer(markers[alertId]);
+                    
+                    const latestPosition = alert.path[alert.path.length - 1];
+                    const newMarker = L.marker(
+                        [latestPosition.latitude, latestPosition.longitude],
+                        {icon: rescuedAlertIcon}
+                    ).addTo(map);
+                    
+                    newMarker.on('click', function() {
+                        showAlertInfo(alert.id);
+                    });
+                    
+                    markers[alertId] = newMarker;
+                }
+                
+                // 更新路径颜色
+                if (pathLines[alertId]) {
+                    map.removeLayer(pathLines[alertId]);
+                    
+                    const pathCoordinates = alert.path.map(point => [point.latitude, point.longitude]);
+                    const newPathLine = L.polyline(pathCoordinates, {
+                        color: '#10b981',
+                        weight: 3,
+                        opacity: 0.7,
+                        dashArray: '5, 7'
+                    }).addTo(map);
+                    
+                    pathLines[alertId] = newPathLine;
+                }
+                
+                // 更新路径点标记
+                if (pathMarkers[alertId]) {
+                    // 移除现有的路径点标记
+                    pathMarkers[alertId].forEach(marker => map.removeLayer(marker));
+                    pathMarkers[alertId] = [];
+                    
+                    // 创建新的路径点标记 (绿色表示已救援)
+                    if (alert.path.length > 1) {
+                        // 根据路径长度选择要显示的点
+                        let displayPoints = [];
+                        if (alert.path.length <= 3) {
+                            displayPoints = alert.path.map((point, index) => ({point, index}));
+                        } else {
+                            // 始终显示起点
+                            displayPoints.push({point: alert.path[0], index: 0});
+                            
+                            // 根据路径长度选择中间点
+                            if (alert.path.length <= 5) {
+                                for (let i = 1; i < alert.path.length - 1; i++) {
+                                    displayPoints.push({point: alert.path[i], index: i});
+                                }
+                            } else {
+                                const step = Math.floor((alert.path.length - 2) / 2);
+                                for (let i = 1; i < alert.path.length - 1; i += step) {
+                                    displayPoints.push({point: alert.path[i], index: i});
+                                }
+                            }
+                            
+                            // 始终显示终点
+                            displayPoints.push({
+                                point: alert.path[alert.path.length - 1], 
+                                index: alert.path.length - 1
+                            });
+                        }
+                        
+                        // 创建新的路径点标记
+                        displayPoints.forEach(({point, index}) => {
+                            let className = 'path-marker';
+                            
+                            if (index === 0) {
+                                className += ' start-marker';
+                            } else if (index === alert.path.length - 1) {
+                                className += ' end-marker';
+                            }
+                            
+                            const pathPointMarker = L.circleMarker(
+                                [point.latitude, point.longitude],
+                                {
+                                    radius: 6,
+                                    className: className
+                                }
+                            ).addTo(map);
+                            
+                            pathPointMarker.bindPopup(`
+                                <div class="p-2 text-center">
+                                    <div class="font-bold mb-1">${point.label}</div>
+                                    <div class="text-sm mb-1">
+                                        <i class="far fa-clock mr-1"></i>${point.time}
+                                    </div>
+                                    <div class="text-xs text-gray-600">
+                                        ${point.longitude}°E, ${point.latitude}°N
+                                    </div>
+                                </div>
+                            `, {
+                                className: 'point-popup',
+                                offset: [0, -5]
+                            });
+                            
+                            pathMarkers[alertId].push(pathPointMarker);
+                        });
+                    }
+                }
+                
+                // 更新告警列表（从未救援列表中移除）
+                const alertItem = document.querySelector(`.alert-item[data-alert-id="${alertId}"]`);
+                if (alertItem) {
+                    alertItem.remove();
+                }
+                
+                // 计算未救援数量并更新计数
+                const unresuedCount = alertData.filter(item => item.rescueStatus === "未救援").length;
+                
+                // 更新告警列表标题的计数
+                const countDisplay = document.querySelector('#alertListPanel .text-xs.bg-red-600');
+                if (countDisplay) {
+                    countDisplay.textContent = `${unresuedCount}人未救援`;
+                }
+                
+                // 更新告警指示器的计数
+                const indicatorCount = document.querySelector('#alertIndicator .rounded-full');
+                if (indicatorCount) {
+                    indicatorCount.textContent = unresuedCount;
+                    
+                    // 如果没有未救援的人员，停止告警指示器闪烁
+                    if (unresuedCount === 0) {
+                        document.querySelector('#alertIndicator .animate-pulse').classList.remove('animate-pulse');
+                    }
+                }
+            }
+
+            // 显示告警信息函数
+            function showAlertInfo(alertId) {
+                const alert = alertData.find(item => item.id === alertId);
+                
+                if (!alert) return;
+                
+                // 获取最新位置（路径中的最后一个点）
+                const latestPosition = alert.path[alert.path.length - 1];
+                
+                // 设置当前选中的告警ID
+                currentAlertId = alertId;
+                
+                // 更新告警信息面板
+                document.getElementById('alertTitle').textContent = `设备编号: ${alert.id}`;
+                document.getElementById('locationInfo').textContent = 
+                    `东经${alert.position.longitude}°, 北纬${alert.position.latitude}°`;
+                document.getElementById('timeInfo').textContent = alert.alertTime;
+                document.getElementById('alertStatus').textContent = alert.rescueStatus;
+                
+                // 设置状态样式
+                if (alert.rescueStatus === "已救援") {
+                    document.getElementById('alertStatus').classList.remove('bg-red-600');
+                    document.getElementById('alertStatus').classList.add('bg-green-600');
+                } else {
+                    document.getElementById('alertStatus').classList.remove('bg-green-600');
+                    document.getElementById('alertStatus').classList.add('bg-red-600');
+                }
+                
+                // 设置地图中心
+                map.setView([latestPosition.latitude, latestPosition.longitude], 14);
+                
+                // 显示告警信息卡片，隐藏其他卡片
+                document.getElementById('alertInfoCard').classList.remove('hidden');
+                document.getElementById('navigationCard').classList.add('hidden');
+                document.getElementById('alertListPanel').classList.add('hidden');
+                document.getElementById('detailPanel').classList.add('hidden');
+                
+                // 高亮所选告警（可选）
+                Object.keys(markers).forEach(key => {
+                    const markerIcon = markers[key].getIcon();
+                    markerIcon.options.className = key === alertId ? 
+                        'alert-marker active' : 'alert-marker';
+                    markers[key].setIcon(markerIcon);
+                });
+            }
+
+            // 显示告警详情函数
+            function showAlertDetail(alertId) {
+                const alert = alertData.find(item => item.id === alertId);
+                
+                if (!alert) return;
+                
+                // 更新详情面板内容
+                updateDetailPanel(alert);
+                
+                // 显示详情面板
+                document.getElementById('detailPanel').classList.remove('hidden');
+            }
+            
+            // 测距功能
+            function startMeasuring() {
+                if (isMeasuring) {
+                    stopMeasuring();
+                    return;
+                }
+                
+                isMeasuring = true;
+                measurePoints = [];
+                
+                // 更改按钮样式
+                const measureBtn = document.querySelector('#toggleMeasure');
+                measureBtn.classList.add('bg-blue-50');
+                measureBtn.querySelector('i').classList.add('text-blue-700');
+                
+                // 隐藏信息卡片
+                document.getElementById('alertInfoCard').classList.add('hidden');
+                document.getElementById('navigationCard').classList.add('hidden');
+                document.getElementById('alertListPanel').classList.add('hidden');
+                document.getElementById('detailPanel').classList.add('hidden');
+                
+                // 添加提示信息
+                if (!measureResultControl) {
+                    measureResultControl = L.control({position: 'bottomcenter'});
+                    measureResultControl.onAdd = function(map) {
+                        const div = L.DomUtil.create('div', 'map-control px-3 py-2 text-center');
+                        div.innerHTML = '点击地图开始测量距离';
+                        return div;
+                    };
+                    measureResultControl.addTo(map);
+                }
+                
+                // 添加地图点击事件
+                map.on('click', onMapClick);
+            }
+            
+            function stopMeasuring() {
+                isMeasuring = false;
+                
+                // 恢复按钮样式
+                const measureBtn = document.querySelector('#toggleMeasure');
+                measureBtn.classList.remove('bg-blue-50');
+                measureBtn.querySelector('i').classList.remove('text-blue-700');
+                
+                // 显示默认信息卡片
+                showAlertInfo(currentAlertId);
+                
+                // 移除地图点击事件
+                map.off('click', onMapClick);
+                
+                // 清除测量点和线
+                clearMeasurements();
+            }
+            
+            function clearMeasurements() {
+                measureMarkers.forEach(marker => {
+                    map.removeLayer(marker);
+                });
+                
+                measureLines.forEach(line => {
+                    map.removeLayer(line);
+                });
+                
+                if (measureResultControl) {
+                    map.removeControl(measureResultControl);
+                    measureResultControl = null;
+                }
+                
+                measureMarkers = [];
+                measureLines = [];
+                measurePoints = [];
+            }
+            
+            function onMapClick(e) {
+                const point = [e.latlng.lat, e.latlng.lng];
+                measurePoints.push(point);
+                
+                // 添加标记
+                const marker = L.marker(point).addTo(map);
+                measureMarkers.push(marker);
+                
+                // 如果有两个或更多点，连接它们
+                if (measurePoints.length > 1) {
+                    const line = L.polyline([
+                        measurePoints[measurePoints.length - 2],
+                        measurePoints[measurePoints.length - 1]
+                    ], {
+                        color: '#3b82f6',
+                        weight: 3
+                    }).addTo(map);
+                    
+                    measureLines.push(line);
+                    
+                    // 计算总距离
+                    let totalDistance = 0;
+                    for (let i = 1; i < measurePoints.length; i++) {
+                        totalDistance += calculateDistance(
+                            measurePoints[i-1], 
+                            measurePoints[i]
+                        );
+                    }
+                    
+                    // 更新距离显示
+                    if (measureResultControl) {
+                        map.removeControl(measureResultControl);
+                    }
+                    
+                    measureResultControl = L.control({position: 'bottomcenter'});
+                    measureResultControl.onAdd = function(map) {
+                        const div = L.DomUtil.create('div', 'map-control px-3 py-2 text-center');
+                        div.innerHTML = `
+                            <div class="flex items-center justify-center">
+                                <span>测量距离: <strong>${totalDistance.toFixed(2)} 公里</strong></span>
+                                <button id="clearMeasure" class="ml-2 text-blue-500">
+                                    <i class="fas fa-redo text-xs"></i> 重置
+                                </button>
+                            </div>
+                        `;
+                        return div;
+                    };
+                    
+                    measureResultControl.addTo(map);
+                    
+                    document.getElementById('clearMeasure').addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        clearMeasurements();
+                        
+                        measureResultControl = L.control({position: 'bottomcenter'});
+                        measureResultControl.onAdd = function(map) {
+                            const div = L.DomUtil.create('div', 'map-control px-3 py-2 text-center');
+                            div.innerHTML = '点击地图开始测量距离';
+                            return div;
+                        };
+                        measureResultControl.addTo(map);
+                    });
+                }
+            }
+            
+            // 计算两点之间的距离 (公里)
+            function calculateDistance(point1, point2) {
+                const lat1 = point1[0];
+                const lon1 = point1[1];
+                const lat2 = point2[0];
+                const lon2 = point2[1];
+                
+                const R = 6371; // 地球半径，单位为公里
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = 
+                    Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                    Math.sin(dLon/2) * Math.sin(dLon/2); 
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+                const distance = R * c;
+                
+                return distance;
+            }
+        });
+    </script>
+</body>
+</html> 

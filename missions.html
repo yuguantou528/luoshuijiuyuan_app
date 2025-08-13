@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>救援任务 - 北斗落水救援</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f2f2f7;
+            color: #000;
+            user-select: none;
+        }
+        .ios-status-bar {
+            height: 48px;
+            background-color: #007AFF;
+            color: white;
+        }
+        .mission-card {
+            background-color: #fff;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease;
+        }
+        .mission-card:active {
+            transform: scale(0.98);
+        }
+        .tab-active {
+            color: #007AFF;
+            border-bottom: 2px solid #007AFF;
+        }
+        .bottom-tab {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .progress-bar {
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .timer {
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- iOS 状态栏 -->
+    <div class="ios-status-bar flex items-center justify-between px-6">
+        <div class="text-sm font-semibold">09:07</div>
+        <div class="notch flex space-x-1.5">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div class="flex items-center p-4">
+            <a href="index.html" class="text-blue-500 mr-4">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+            <h1 class="text-xl font-semibold flex-1 text-center">救援任务</h1>
+            <button class="text-blue-500">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+
+        <!-- 分段控制器 (标签页) -->
+        <div class="flex border-b border-gray-200">
+            <button class="flex-1 py-3 text-center tab-active" id="tab-active">
+                进行中 <span class="text-blue-500 ml-1">2</span>
+            </button>
+            <button class="flex-1 py-3 text-center text-gray-500" id="tab-completed">
+                已完成 <span class="text-gray-400 ml-1">28</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="flex-1 overflow-y-auto p-4">
+        <!-- 进行中的任务列表 -->
+        <div id="content-active">
+            <!-- 紧急救援任务卡片 -->
+            <div class="mission-card p-4 mb-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                        <h3 class="font-bold">紧急救援 #M2207</h3>
+                    </div>
+                    <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">进行中</span>
+                </div>
+                
+                <div class="mt-3 flex">
+                    <div class="w-16 h-16 rounded-lg bg-red-100 flex items-center justify-center">
+                        <i class="fas fa-life-ring text-red-500 text-2xl"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium">渔民落水救援</p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <i class="fas fa-map-marker-alt mr-1"></i> 福建南部海区
+                                </p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <i class="fas fa-user mr-1"></i> 落水人员：张三 (渔民)
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <div class="timer text-red-500 font-bold">00:05:42</div>
+                                <p class="text-xs text-gray-500 mt-0.5">已落水时间</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>救援进度</span>
+                                <span>25%</span>
+                            </div>
+                            <div class="progress-bar bg-gray-100">
+                                <div class="h-full bg-blue-500" style="width: 25%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3 border-t border-gray-100 pt-3">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&auto=format&fit=crop&q=80" 
+                                 class="w-6 h-6 rounded-full object-cover" alt="救援人员头像">
+                            <span class="text-xs text-gray-600 ml-2">陈海洋 (负责人)</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-blue-500 text-white text-xs px-3 py-1 rounded-lg">
+                                <i class="fas fa-location-arrow mr-1"></i> 导航
+                            </button>
+                            <button class="bg-green-500 text-white text-xs px-3 py-1 rounded-lg">
+                                <i class="fas fa-info-circle mr-1"></i> 详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 正在进行任务卡片 -->
+            <div class="mission-card p-4 mb-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                        <h3 class="font-bold">救援任务 #M2206</h3>
+                    </div>
+                    <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">救援中</span>
+                </div>
+                
+                <div class="mt-3 flex">
+                    <div class="w-16 h-16 rounded-lg bg-yellow-100 flex items-center justify-center">
+                        <i class="fas fa-life-ring text-yellow-500 text-2xl"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium">游客落水救援</p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <i class="fas fa-map-marker-alt mr-1"></i> 福建南部海区
+                                </p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <i class="fas fa-user mr-1"></i> 落水人员：李四 (游客)
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <div class="timer text-yellow-500 font-bold">00:14:18</div>
+                                <p class="text-xs text-gray-500 mt-0.5">已落水时间</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>救援进度</span>
+                                <span>65%</span>
+                            </div>
+                            <div class="progress-bar bg-gray-100">
+                                <div class="h-full bg-yellow-500" style="width: 65%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3 border-t border-gray-100 pt-3">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" 
+                                 class="w-6 h-6 rounded-full object-cover" alt="救援人员头像">
+                            <span class="text-xs text-gray-600 ml-2">王建国 (负责人)</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-blue-500 text-white text-xs px-3 py-1 rounded-lg">
+                                <i class="fas fa-location-arrow mr-1"></i> 导航
+                            </button>
+                            <button class="bg-green-500 text-white text-xs px-3 py-1 rounded-lg">
+                                <i class="fas fa-info-circle mr-1"></i> 详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 任务分配提示 -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start">
+                <i class="fas fa-info-circle text-blue-500 mr-3 mt-0.5"></i>
+                <div>
+                    <h4 class="font-medium text-blue-800">救援任务分配建议</h4>
+                    <p class="text-sm text-blue-700 mt-1">
+                        根据当前救援资源和海域情况，系统建议：
+                    </p>
+                    <ul class="text-sm text-blue-600 mt-2 ml-4 list-disc">
+                        <li>救援艇"海巡01"前往任务#M2207现场</li>
+                        <li>增派2名水上救援人员支援任务#M2206</li>
+                        <li>通知附近渔船协助搜寻落水人员</li>
+                    </ul>
+                    <button class="bg-blue-500 text-white text-xs px-3 py-1.5 rounded-lg mt-2">
+                        一键执行建议
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 已完成的任务列表（默认隐藏） -->
+        <div id="content-completed" class="hidden">
+            <!-- 已完成任务卡片1 -->
+            <div class="mission-card p-4 mb-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        <h3 class="font-bold text-gray-700">救援任务 #M2205</h3>
+                    </div>
+                    <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">已完成</span>
+                </div>
+                
+                <div class="mt-3 flex">
+                    <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <i class="fas fa-life-ring text-gray-400 text-2xl"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium text-gray-700">渔民落水救援</p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <i class="fas fa-map-marker-alt mr-1"></i> 福建南部海区
+                                </p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <i class="fas fa-user mr-1"></i> 落水人员：王五 (渔民)
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <div class="timer text-green-500 font-medium">00:23:42</div>
+                                <p class="text-xs text-gray-500 mt-0.5">救援用时</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-500">完成时间</span>
+                                <span class="text-gray-500">昨天 16:42</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3 border-t border-gray-100 pt-3">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=100&auto=format&fit=crop&q=80" 
+                                 class="w-6 h-6 rounded-full object-cover" alt="救援人员头像">
+                            <span class="text-xs text-gray-600 ml-2">陈海洋 (负责人)</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-lg">
+                                <i class="fas fa-file-alt mr-1"></i> 报告
+                            </button>
+                            <button class="bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-lg">
+                                <i class="fas fa-info-circle mr-1"></i> 详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 已完成任务卡片2 -->
+            <div class="mission-card p-4 mb-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        <h3 class="font-bold text-gray-700">救援任务 #M2204</h3>
+                    </div>
+                    <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">已完成</span>
+                </div>
+                
+                <div class="mt-3 flex">
+                    <div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <i class="fas fa-life-ring text-gray-400 text-2xl"></i>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium text-gray-700">游客落水救援</p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <i class="fas fa-map-marker-alt mr-1"></i> 福建南部海区
+                                </p>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <i class="fas fa-user mr-1"></i> 落水人员：赵六 (游客)
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <div class="timer text-green-500 font-medium">00:18:05</div>
+                                <p class="text-xs text-gray-500 mt-0.5">救援用时</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-2">
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-gray-500">完成时间</span>
+                                <span class="text-gray-500">前天 09:15</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3 border-t border-gray-100 pt-3">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80" 
+                                 class="w-6 h-6 rounded-full object-cover" alt="救援人员头像">
+                            <span class="text-xs text-gray-600 ml-2">王建国 (负责人)</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-lg">
+                                <i class="fas fa-file-alt mr-1"></i> 报告
+                            </button>
+                            <button class="bg-gray-200 text-gray-700 text-xs px-3 py-1 rounded-lg">
+                                <i class="fas fa-info-circle mr-1"></i> 详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 查看更多按钮 -->
+            <button class="w-full py-3 bg-white rounded-lg border border-gray-200 text-blue-500 text-sm font-medium mb-4">
+                查看更多历史任务
+            </button>
+
+            <!-- 救援统计 -->
+            <div class="bg-white rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-gray-800 mb-3">救援统计</h3>
+                <div class="grid grid-cols-3 gap-3 mb-3">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-500">28</div>
+                        <div class="text-xs text-gray-500">累计救援</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-500">26</div>
+                        <div class="text-xs text-gray-500">成功救援</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-red-500">2</div>
+                        <div class="text-xs text-gray-500">失败救援</div>
+                    </div>
+                </div>
+                <div class="h-16 bg-gray-100 rounded-lg flex items-end overflow-hidden">
+                    <div class="h-full bg-blue-500 w-1/5" style="height: 30%"></div>
+                    <div class="h-full bg-blue-500 w-1/5" style="height: 50%"></div>
+                    <div class="h-full bg-blue-500 w-1/5" style="height: 70%"></div>
+                    <div class="h-full bg-blue-500 w-1/5" style="height: 90%"></div>
+                    <div class="h-full bg-blue-500 w-1/5" style="height: 60%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 mt-2">
+                    <span>5月</span>
+                    <span>6月</span>
+                    <span>7月</span>
+                    <span>8月</span>
+                    <span>9月</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-tab py-2 px-6 grid grid-cols-5 gap-1">
+        <a href="index.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-home text-lg"></i>
+            <span class="text-xs mt-1">首页</span>
+        </a>
+        <a href="alerts.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-exclamation-circle text-lg"></i>
+            <span class="text-xs mt-1">告警</span>
+        </a>
+        <a href="map.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-map-marked-alt text-lg"></i>
+            <span class="text-xs mt-1">地图</span>
+        </a>
+        <a href="messages.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-comment-dots text-lg"></i>
+            <span class="text-xs mt-1">消息</span>
+        </a>
+        <a href="profile.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-user text-lg"></i>
+            <span class="text-xs mt-1">我的</span>
+        </a>
+    </div>
+
+    <script>
+        // 标签页切换逻辑
+        const tabActive = document.getElementById('tab-active');
+        const tabCompleted = document.getElementById('tab-completed');
+        const contentActive = document.getElementById('content-active');
+        const contentCompleted = document.getElementById('content-completed');
+
+        tabActive.addEventListener('click', function() {
+            tabActive.classList.add('tab-active');
+            tabActive.classList.remove('text-gray-500');
+            tabCompleted.classList.remove('tab-active');
+            tabCompleted.classList.add('text-gray-500');
+            
+            contentActive.classList.remove('hidden');
+            contentCompleted.classList.add('hidden');
+        });
+
+        tabCompleted.addEventListener('click', function() {
+            tabCompleted.classList.add('tab-active');
+            tabCompleted.classList.remove('text-gray-500');
+            tabActive.classList.remove('tab-active');
+            tabActive.classList.add('text-gray-500');
+            
+            contentCompleted.classList.remove('hidden');
+            contentActive.classList.add('hidden');
+        });
+
+        // 任务卡片点击效果
+        document.querySelectorAll('.mission-card').forEach(card => {
+            card.addEventListener('click', function() {
+                this.classList.add('opacity-80');
+                setTimeout(() => {
+                    this.classList.remove('opacity-80');
+                    // 可以在这里添加导航到详情页的逻辑
+                }, 200);
+            });
+        });
+
+        // 模拟计时器更新
+        let timer1 = 342; // 5:42
+        let timer2 = 858; // 14:18
+        
+        function updateTimers() {
+            timer1++;
+            timer2++;
+            
+            document.querySelectorAll('.timer')[0].textContent = formatTime(timer1);
+            document.querySelectorAll('.timer')[1].textContent = formatTime(timer2);
+            
+            setTimeout(updateTimers, 1000);
+        }
+        
+        function formatTime(seconds) {
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+        
+        // 启动计时器
+        updateTimers();
+    </script>
+</body>
+</html> 

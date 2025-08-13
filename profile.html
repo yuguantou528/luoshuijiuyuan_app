@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>我的 - 北斗落水救援</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f8f9fa;
+            color: #000;
+            user-select: none;
+        }
+        .ios-status-bar {
+            height: 44px;
+            background-color: transparent;
+            color: black;
+        }
+        .profile-header {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            padding: 1.5rem;
+            border-radius: 0 0 1.5rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.1);
+        }
+        .menu-card {
+            background-color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .menu-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
+        .menu-item {
+            transition: all 0.15s ease;
+            border-bottom: 1px solid rgba(0,0,0,0.03);
+        }
+        .menu-item:last-child {
+            border-bottom: none;
+        }
+        .menu-item:active {
+            background-color: #f3f4f6;
+        }
+        .bottom-tab {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.03);
+        }
+        .avatar {
+            width: 5rem;
+            height: 5rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .logout-btn {
+            background: linear-gradient(135deg, #111827, #1f2937);
+            color: white;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .logout-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        .eye-icon {
+            color: #3b82f6;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .eye-icon:hover {
+            color: #2563eb;
+        }
+        .check-update-btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+        .check-update-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.15);
+        }
+        .back-button {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            transition: all 0.2s ease;
+        }
+        .back-button:active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .secondary-page-header {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            padding: 1.25rem;
+            border-radius: 0 0 1.5rem 1.5rem;
+            box-shadow: 0 4px 12px rgba(49, 130, 206, 0.1);
+        }
+        .about-logo {
+            width: 90px;
+            height: 90px;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .about-logo span {
+            font-weight: bold;
+            font-size: 1.25rem;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .setting-item {
+            border-radius: 12px;
+            transition: all 0.15s ease;
+        }
+        .setting-item:active {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- iOS 状态栏 -->
+    <div class="ios-status-bar flex items-center justify-between px-6">
+        <div class="text-sm font-semibold">9:41</div>
+        <div class="notch flex space-x-1.5">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="flex-1 overflow-y-auto pb-16">
+        <!-- 用户信息卡片 - 仅在主页显示 -->
+        <div id="user-info-card" class="profile-header">
+            <div class="flex items-center">
+                <div class="relative">
+                    <img src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=150&auto=format&fit=crop&q=80" 
+                        class="avatar" alt="用户头像">
+                </div>
+                <div class="ml-4 text-white">
+                    <h2 class="text-xl font-bold">admin</h2>
+                    <p class="text-sm text-blue-100 flex items-center mt-1">
+                        <span id="phone-number">18000088888</span>
+                        <button id="toggle-mask" class="ml-2">
+                            <i class="far fa-eye text-blue-100 eye-icon"></i>
+                        </button>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主菜单 - 仅在主页显示 -->
+        <div id="main-menu" class="p-5 space-y-4">
+            <!-- 关于我们 -->
+            <a href="javascript:void(0);" onclick="showAbout()" class="menu-card block">
+                <div class="menu-item flex items-center justify-between p-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-3">
+                            <i class="far fa-heart text-blue-500"></i>
+                        </div>
+                        <span class="font-medium">关于我们</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300"></i>
+                </div>
+            </a>
+
+            <!-- 设置 -->
+            <a href="javascript:void(0);" onclick="showSettings()" class="menu-card block">
+                <div class="menu-item flex items-center justify-between p-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mr-3">
+                            <i class="fas fa-cog text-gray-500"></i>
+                        </div>
+                        <span class="font-medium">设置</span>
+                    </div>
+                    <i class="fas fa-chevron-right text-gray-300"></i>
+                </div>
+            </a>
+
+            <!-- 退出登录按钮 -->
+            <button onclick="logout()" class="logout-btn w-full py-4 mt-8">
+                <i class="fas fa-sign-out-alt mr-2"></i> 退出账号
+            </button>
+        </div>
+
+        <!-- 设置详情页 -->
+        <div id="settings-page" class="hidden h-full">
+            <div class="secondary-page-header flex items-center">
+                <button onclick="hideSettings()" class="back-button mr-4">
+                    <i class="fas fa-chevron-left text-white"></i>
+                </button>
+                <h1 class="text-xl font-bold text-white">设置</h1>
+            </div>
+            
+            <div class="p-5 mt-3">
+                <div class="menu-card">
+                    <div class="setting-item flex items-center justify-between p-4">
+                        <div>
+                            <p class="font-semibold">重置密码</p>
+                            <p class="text-sm text-gray-500 mt-1">请联系管理员进行密码重置</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
+                            <i class="fas fa-key text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="menu-card mt-4">
+                    <div class="setting-item flex items-center justify-between p-4">
+                        <div>
+                            <p class="font-semibold">消息通知</p>
+                            <p class="text-sm text-gray-500 mt-1">接收新告警消息提醒</p>
+                        </div>
+                        <div class="relative">
+                            <input type="checkbox" checked class="sr-only" id="toggle-notification">
+                            <div class="w-12 h-6 bg-blue-500 rounded-full"></div>
+                            <div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform translate-x-6"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 关于我们详情页 -->
+        <div id="about-page" class="hidden h-full">
+            <div class="secondary-page-header flex items-center">
+                <button onclick="hideAbout()" class="back-button mr-4">
+                    <i class="fas fa-chevron-left text-white"></i>
+                </button>
+                <h1 class="text-xl font-bold text-white">关于我们</h1>
+            </div>
+            
+            <div class="p-10 flex flex-col items-center mt-6">
+                <div class="about-logo mb-4">
+                    <span>LOGO</span>
+                </div>
+                <p class="font-bold text-lg mb-1">北斗落水救援</p>
+                <p class="text-sm text-blue-500 mb-6">Version 1.0</p>
+                
+                <button class="check-update-btn w-48 py-3 mb-8">
+                    <i class="fas fa-sync-alt mr-2"></i> 检查更新
+                </button>
+                
+                <p class="text-sm text-gray-600 text-center max-w-xs">
+                    北斗落水救援系统为海上作业人员提供即时落水救援支持，保障海上安全。
+                </p>
+            </div>
+            
+            <div class="flex justify-center space-x-10 mt-20">
+                <a href="#" class="text-gray-500 text-sm flex items-center">
+                    <i class="fas fa-shield-alt mr-1 text-gray-400"></i> 隐私协议
+                </a>
+                <a href="#" class="text-gray-500 text-sm flex items-center">
+                    <i class="fas fa-file-contract mr-1 text-gray-400"></i> 用户协议
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-tab py-2 px-6 grid grid-cols-4 gap-1 fixed bottom-0 w-full left-0 right-0">
+        <a href="index.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-home text-lg"></i>
+            <span class="text-xs mt-1">首页</span>
+        </a>
+        <a href="map.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-map-marked-alt text-lg"></i>
+            <span class="text-xs mt-1">地图</span>
+        </a>
+        <a href="alerts.html" class="flex flex-col items-center text-gray-400">
+            <i class="fas fa-exclamation-circle text-lg"></i>
+            <span class="text-xs mt-1">告警</span>
+        </a>
+        <a href="profile.html" class="flex flex-col items-center text-blue-500">
+            <i class="fas fa-user text-lg"></i>
+            <span class="text-xs mt-1">我的</span>
+        </a>
+    </div>
+
+    <script>
+        // 手机号脱敏控制
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneElement = document.getElementById('phone-number');
+            const toggleButton = document.getElementById('toggle-mask');
+            const phoneNumber = '18000088888';
+            let isMasked = true;
+            
+            function updatePhoneDisplay() {
+                if (isMasked) {
+                    phoneElement.textContent = phoneNumber.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+                    toggleButton.innerHTML = '<i class="far fa-eye-slash text-blue-100 eye-icon"></i>';
+                } else {
+                    phoneElement.textContent = phoneNumber;
+                    toggleButton.innerHTML = '<i class="far fa-eye text-blue-100 eye-icon"></i>';
+                }
+            }
+            
+            toggleButton.addEventListener('click', function() {
+                isMasked = !isMasked;
+                updatePhoneDisplay();
+            });
+            
+            // 初始设置为脱敏状态
+            updatePhoneDisplay();
+        });
+        
+        // 页面切换控制
+        function showSettings() {
+            document.getElementById('settings-page').classList.remove('hidden');
+            document.getElementById('user-info-card').classList.add('hidden');
+            document.getElementById('main-menu').classList.add('hidden');
+            window.scrollTo(0, 0);
+        }
+        
+        function hideSettings() {
+            document.getElementById('settings-page').classList.add('hidden');
+            document.getElementById('user-info-card').classList.remove('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+        
+        function showAbout() {
+            document.getElementById('about-page').classList.remove('hidden');
+            document.getElementById('user-info-card').classList.add('hidden');
+            document.getElementById('main-menu').classList.add('hidden');
+            window.scrollTo(0, 0);
+        }
+        
+        function hideAbout() {
+            document.getElementById('about-page').classList.add('hidden');
+            document.getElementById('user-info-card').classList.remove('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            window.scrollTo(0, 0);
+        }
+
+        function logout() {
+            // 实际应用中，这里可以清除登录状态、token等
+            window.location.href = 'splash.html';
+        }
+    </script>
+</body>
+</html> 

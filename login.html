@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>登录 - 北斗落水救援</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f2f2f7;
+            color: #000;
+            user-select: none;
+        }
+        .ios-status-bar {
+            height: 44px;
+            background-color: #007AFF;
+            color: white;
+        }
+        .login-header {
+            background-color: #007AFF;
+            color: white;
+        }
+        .login-btn {
+            background: linear-gradient(135deg, #0091ff 0%, #0066cc 100%);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15);
+            transition: all 0.2s ease;
+        }
+        .login-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 6px rgba(0, 122, 255, 0.1);
+        }
+        .input-field {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        .input-field:focus-within {
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- iOS 状态栏 -->
+    <div class="ios-status-bar flex items-center justify-between px-6">
+        <div class="text-sm font-semibold">09:41</div>
+        <div class="notch flex space-x-1.5">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- 登录头部 -->
+    <div class="login-header py-8 px-6 rounded-b-3xl">
+        <div class="flex items-center justify-center mb-6">
+            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-md">
+                <i class="fas fa-satellite-dish text-blue-500 text-3xl"></i>
+            </div>
+        </div>
+        <h1 class="text-2xl font-bold text-center">北斗落水救援系统</h1>
+        <p class="text-center text-blue-100 mt-2">请登录您的账户</p>
+    </div>
+
+    <!-- 登录表单 -->
+    <div class="flex-1 px-6 pt-8">
+        <form id="loginForm">
+            <div class="mb-6">
+                <div class="input-field flex items-center p-3 mb-1">
+                    <i class="fas fa-user text-gray-400 w-6"></i>
+                    <input type="text" placeholder="用户名/手机号" value="admin" class="flex-1 outline-none bg-transparent pl-2" required>
+                </div>
+                <p class="text-xs text-gray-500 ml-2">测试账号: admin</p>
+            </div>
+            
+            <div class="mb-8">
+                <div class="input-field flex items-center p-3 mb-1">
+                    <i class="fas fa-lock text-gray-400 w-6"></i>
+                    <input type="password" placeholder="密码" value="123456" class="flex-1 outline-none bg-transparent pl-2" required>
+                    <button type="button" class="text-gray-400 w-6 flex items-center justify-center" id="togglePassword">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 ml-2">测试密码: 123456</p>
+            </div>
+            
+            <button type="submit" class="login-btn w-full text-white py-3.5 rounded-xl text-base font-medium">
+                登录
+            </button>
+            
+            <div class="flex justify-end mt-5">
+                <a href="#" class="text-sm text-blue-500">忘记密码？</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 底部 -->
+    <div class="py-6 text-center">
+        <p class="text-xs text-gray-500">xxx技术有限公司 © 2023</p>
+    </div>
+
+    <script>
+        // 切换密码可见性
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = this.parentElement.querySelector('input');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        });
+        
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // 这里可以添加登录验证逻辑
+            // 登录成功后跳转到首页
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html> 
